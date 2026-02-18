@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: n8n-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8nuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8nuser -d n8n"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+    environment:
+      # DB
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8nuser
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # 호스트
+      N8N_HOST: ${DOMAIN_NAME}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://${DOMAIN_NAME}/
+      N8N_PROXY_HOPS: 1
+
+      # 보안
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_SECURE_COOKIE: "true"
+
+      # 타임존
+      GENERIC_TIMEZONE: Asia/Seoul
+      TZ: Asia/Seoul
+
+      # 프로덕션
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - n8n-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  n8n-network:
+    driver: bridge

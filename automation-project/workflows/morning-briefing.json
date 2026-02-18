@@ -1,0 +1,117 @@
+{
+  "name": "[F3] 모닝 브리핑 (08:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "triggerAtHour": 8, "triggerAtMinute": 0 }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매일 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const now = new Date(); const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '시간', date: { equals: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '시간', direction: 'ascending' }], page_size: 100 }); })() }}"
+      },
+      "id": "node-today-todos",
+      "name": "오늘 할 일 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NOTION_HEADER_AUTH_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const now = new Date(); const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '목표날짜', date: { before: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '목표날짜', direction: 'ascending' }], page_size: 100 }); })() }}"
+      },
+      "id": "node-overdue",
+      "name": "밀린 업무 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 500],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NOTION_HEADER_AUTH_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 모닝 브리핑 메시지 생성\nconst todayResults = $('오늘 할 일 조회').first().json.results || [];\nconst overdueResults = $('밀린 업무 조회').first().json.results || [];\n\nconst days = ['일','월','화','수','목','금','토'];\nconst now = new Date();\nconst dateLabel = `${now.getMonth()+1}/${now.getDate()}(${days[now.getDay()]})`;\n\n// 프로젝트별 그룹핑\nconst groups = {};\nlet inProgress = 0;\nlet notStarted = 0;\n\ntodayResults.forEach(item => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const status = item.properties['상태']?.status?.name || '시작 전';\n  const projRel = item.properties['프로젝트']?.relation || [];\n  const projName = projRel.length > 0 ? '프로젝트' : '기타';\n  // 시간 추출\n  const timeStr = item.properties['시간']?.date?.start || '';\n  let timeLabel = '';\n  if (timeStr && timeStr.includes('T')) {\n    const t = timeStr.split('T')[1];\n    timeLabel = ` [${t.substring(0,5)}]`;\n  }\n\n  if (!groups[projName]) groups[projName] = [];\n  groups[projName].push({ title, status, timeLabel });\n\n  if (status === '진행 중') inProgress++;\n  else notStarted++;\n});\n\n// 메시지 조립\nlet msg = `☀️ ${dateLabel} 모닝 브리핑\\n━━━━━━━━━━━━━━━━━━\\n`;\n\nif (todayResults.length === 0) {\n  msg += '\\n오늘 등록된 할 일이 없습니다.';\n} else {\n  for (const [proj, items] of Object.entries(groups)) {\n    msg += `\\n📁 ${proj}`;\n    items.forEach(item => {\n      msg += `\\n  · ${item.title}${item.timeLabel}`;\n    });\n  }\n  msg += `\\n\\n━━━━━━━━━━━━━━━━━━`;\n  msg += `\\n📊 총 ${todayResults.length}건`;\n  if (inProgress > 0) msg += ` | 진행 중 ${inProgress}`;\n  if (notStarted > 0) msg += ` | 시작 전 ${notStarted}`;\n}\n\n// 밀린 업무\nif (overdueResults.length > 0) {\n  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());\n  msg += `\\n\\n⚠️ 밀린 업무 ${overdueResults.length}건`;\n  overdueResults.slice(0, 5).forEach(item => {\n    const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n    const dueStr = item.properties['목표날짜']?.date?.start;\n    if (dueStr) {\n      const due = new Date(dueStr);\n      const diff = Math.floor((today - due) / (1000*60*60*24));\n      msg += `\\n  · ${title} (${diff}일 경과)`;\n    }\n  });\n  if (overdueResults.length > 5) msg += `\\n  ... 외 ${overdueResults.length - 5}건`;\n}\n\nreturn [{ json: { text: msg } }];"
+      },
+      "id": "node-format-briefing",
+      "name": "브리핑 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send-briefing",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [720, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 08:00": {
+      "main": [
+        [
+          { "node": "오늘 할 일 조회", "type": "main", "index": 0 },
+          { "node": "밀린 업무 조회", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "오늘 할 일 조회": { "main": [[{ "node": "브리핑 포맷", "type": "main", "index": 0 }]] },
+    "밀린 업무 조회": { "main": [[{ "node": "브리핑 포맷", "type": "main", "index": 0 }]] },
+    "브리핑 포맷": { "main": [[{ "node": "텔레그램 발송", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}
