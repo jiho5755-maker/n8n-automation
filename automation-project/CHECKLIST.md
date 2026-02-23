@@ -15,52 +15,41 @@
 - [x] 계정 활성화 확인 (테넌시: jiho, 비밀번호 찾기 필요)
 
 ### 1-2. ARM 인스턴스 생성
-- [ ] OCI 콘솔 → Compute → Instances → Create Instance
-- [ ] Image: Ubuntu 22.04 (aarch64)
-- [ ] Shape: VM.Standard.A1.Flex (2 OCPU / 12GB RAM)
-- [ ] SSH 키 생성 및 다운로드
-- [ ] 인스턴스 생성 (Out of Capacity 오류 시 리전/시간 변경 후 재시도)
-- [ ] 공인 IP 주소 메모: _______________
+- [x] OCI 콘솔 → Compute → Instances → Create Instance
+- [x] Image: Ubuntu 22.04 (aarch64)
+- [x] Shape: VM.Standard.A1.Flex (2 OCPU / 12GB RAM)
+- [x] SSH 키 생성 및 다운로드 (`~/.ssh/oracle-n8n.key`)
+- [x] 인스턴스 생성 완료. 공인 IP: `158.180.77.201`
 
 ### 1-3. 네트워크 설정 (OCI 콘솔)
-- [ ] VCN → Security Lists → Ingress Rules 추가:
-  - [ ] Port 80 (HTTP) TCP 허용
-  - [ ] Port 443 (HTTPS) TCP 허용
+- [x] VCN → Security Lists → Ingress Rules 추가:
+  - [x] Port 80 (HTTP) TCP 허용
+  - [x] Port 443 (HTTPS) TCP 허용
 
 ### 1-4. SSH 접속 및 서버 설정
-- [ ] `ssh -i <ssh-key> ubuntu@<공인IP>` 접속 확인
-- [ ] `setup.sh` 업로드 및 실행
-- [ ] Docker 정상 확인: `docker --version`
-- [ ] Nginx 정상 확인: `sudo systemctl status nginx`
+- [x] `ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201` 접속 확인
+- [x] `setup.sh` 업로드 및 실행
+- [x] Docker 정상 확인
+- [x] Nginx 정상 확인
 
 ### 1-5. 도메인 DNS 설정
-- [ ] 도메인 관리 페이지 접속
-- [ ] A 레코드 추가: `n8n.내도메인.com` → Oracle Cloud 공인 IP
-- [ ] DNS 전파 확인: `nslookup n8n.내도메인.com`
+- [x] A 레코드: `n8n.pressco21.com` → `158.180.77.201`
+- [x] DNS 전파 확인
 
 ### 1-6. n8n 배포
-- [ ] `~/n8n/`에 docker-compose.yml, .env 파일 배치
-- [ ] .env 값 설정 (도메인, DB 비밀번호, 암호화 키)
-- [ ] HTTPS 설정 전 임시로 .env에서 N8N_SECURE_COOKIE=false 확인
-- [ ] `cd ~/n8n && docker compose up -d`
-- [ ] 로그 확인: `docker compose logs -f n8n`
-- [ ] http://공인IP:5678 접속 테스트 (임시, 나중에 차단)
+- [x] `~/n8n/`에 docker-compose.yml, .env 파일 배치
+- [x] `cd ~/n8n && docker compose up -d`
+- [x] n8n 정상 가동 확인
 
 ### 1-7. HTTPS 설정
-- [ ] Nginx 설정 파일 배치: `/etc/nginx/sites-available/n8n`
-- [ ] `sudo ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/`
-- [ ] `sudo nginx -t && sudo systemctl reload nginx`
-- [ ] `sudo certbot --nginx -d n8n.내도메인.com`
-- [ ] https://n8n.내도메인.com 접속 확인
-- [ ] .env에서 N8N_SECURE_COOKIE=true로 변경
-- [ ] `cd ~/n8n && docker compose up -d` 재시작
-- [ ] 5678 포트 직접 접근 차단 확인
+- [x] Nginx 리버스 프록시 설정
+- [x] SSL 인증서 발급 (Certbot)
+- [x] https://n8n.pressco21.com 접속 확인
 
 ### 1-8. n8n 초기 설정
-- [ ] https://n8n.내도메인.com 접속
-- [ ] 관리자 계정 생성
-- [ ] Settings → General → Timezone: Asia/Seoul 확인
-- [ ] **Phase 1 완료**
+- [x] 관리자 계정 생성 (pressco5755@naver.com)
+- [x] Timezone: Asia/Seoul 확인
+- [x] **Phase 1 완료**
 
 ---
 
@@ -86,9 +75,9 @@
   - [x] 캘린더 DB
 
 ### 2-3. n8n Credential 등록
-- [ ] n8n → Settings → Credentials
-- [ ] Telegram Bot API credential 추가 (토큰 입력)
-- [ ] Notion API credential 추가 (Integration 토큰 입력)
+- [x] Telegram Bot API credential 추가 (ID: 1)
+- [x] Notion Header Auth credential 추가 (ID: 3, Authorization: Bearer ntn_...)
+- [x] Notion API credential 추가 (ID: 2)
 
 ### 2-4. 워크플로우 구현: 텔레그램 → 노션
 - [x] [F1] 텔레그램 메시지 수신 워크플로우 구현 (`workflows/telegram-todo-bot.json`)
@@ -104,11 +93,10 @@
 - [x] /밀린 - 밀린 업무 조회
 
 ### 2-6. 테스트
-- [ ] 모바일에서 텔레그램 입력 테스트
-- [ ] PC에서 텔레그램 입력 테스트
-- [ ] 프로젝트 매칭 정확도 확인
-- [ ] 릴레이션 연결 확인
-- [ ] **Phase 2 완료**
+- [x] 텔레그램 메시지 → 노션 할 일 자동 등록 확인 (2026-02-24)
+- [x] 프로젝트 매칭 + 캘린더 릴레이션 연결 확인
+- [ ] /완료 - 상태 변경 (추후 구현)
+- [x] **Phase 2 완료**
 
 ---
 

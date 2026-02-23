@@ -48,9 +48,9 @@ sudo netfilter-persistent save
 
 # 6. Swap 설정 (안정성)
 echo ""
-echo "[6/7] Swap 2GB 설정..."
+echo "[6/7] Swap 4GB 설정..."
 if [ ! -f /swapfile ]; then
-    sudo fallocate -l 2G /swapfile
+    sudo fallocate -l 4G /swapfile
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
