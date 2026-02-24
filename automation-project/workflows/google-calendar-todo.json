@@ -1,0 +1,264 @@
+{
+  "name": "[F2] 구글 캘린더 → 노션 할 일 등록",
+  "nodes": [
+    {
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "기본 캘린더"
+        },
+        "options": {}
+      },
+      "id": "node-cal-trigger",
+      "name": "구글 캘린더 트리거",
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar OAuth2"
+        }
+      },
+      "webhookId": "f2-gcal-webhook-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 구글 캘린더 이벤트 파싱 =====\n// 제목 형식: '프로젝트 - 할 일' 또는 '할 일'\n// 날짜: event.start.dateTime (시간 포함) 또는 event.start.date (종일)\n\nconst event = $json;\nconst title = (event.summary || '').trim();\nconst startInfo = event.start || {};\n\n// 날짜 파싱\nlet dateISO, dateLabel;\nif (startInfo.dateTime) {\n  // ISO 8601 문자열에서 직접 날짜 추출 (UTC 변환 방지)\n  // '2026-02-24T05:00:00+09:00' → '2026-02-24'\n  dateISO = startInfo.dateTime.split('T')[0];\n  const dateParts = dateISO.split('-');\n  dateLabel = dateParts[0]+'년 '+parseInt(dateParts[1])+'월 '+parseInt(dateParts[2])+'일';\n} else if (startInfo.date) {\n  dateISO = startInfo.date;\n  const dateParts = startInfo.date.split('-');\n  dateLabel = dateParts[0]+'년 '+parseInt(dateParts[1])+'월 '+parseInt(dateParts[2])+'일';\n} else {\n  const now = new Date();\n  const y = now.getFullYear();\n  const m = String(now.getMonth()+1).padStart(2,'0');\n  const d = String(now.getDate()).padStart(2,'0');\n  dateISO = y+'-'+m+'-'+d;\n  dateLabel = y+'년 '+parseInt(m)+'월 '+parseInt(d)+'일';\n}\n\n// 제목 파싱: '프로젝트 - 할 일' 형식\nlet project = null;\nlet todo = title;\nconst sepIdx = title.indexOf(' - ');\nif (sepIdx !== -1) {\n  project = title.substring(0, sepIdx).trim();\n  todo = title.substring(sepIdx + 3).trim();\n}\n\nreturn [{\n  json: {\n    todo: todo,\n    project: project || '',\n    dateISO: dateISO,\n    dateLabel: dateLabel,\n    calendarEventId: event.id || ''\n  }\n}];"
+      },
+      "id": "node-parse",
+      "name": "이벤트 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ property: '할 일', title: { equals: $json.todo } }, { property: '시간 ', date: { equals: $json.dateISO } }] }, page_size: 1 }) }}"
+      },
+      "id": "node-dup-check",
+      "name": "중복 체크",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-not-dup",
+              "leftValue": "={{ $json.results.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-dup",
+      "name": "중복 아님?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/30bd119f-a669-81e2-a747-f9002c0a9910/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { property: '프로젝트', title: { contains: $('이벤트 파싱').first().json.project || '' } }, page_size: 5 }) }}"
+      },
+      "id": "node-find-project",
+      "name": "프로젝트 검색",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 프로젝트 매칭 결과 처리\nconst prev = $('이벤트 파싱').first().json;\nconst results = $input.first().json.results || [];\n\nlet projectId = null;\nlet projectName = null;\n\nif (prev.project && results.length > 0) {\n  projectId = results[0].id;\n  const titleProp = results[0].properties['프로젝트'];\n  if (titleProp && titleProp.title && titleProp.title.length > 0) {\n    projectName = titleProp.title[0].plain_text;\n  }\n}\n\nreturn [{\n  json: {\n    ...prev,\n    projectId,\n    projectName: projectName || prev.project,\n    projectMatched: !!projectId\n  }\n}];"
+      },
+      "id": "node-project-result",
+      "name": "프로젝트 매칭 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/30bd119f-a669-812c-8bf4-fe603e6a8c6b/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { property: '날짜', date: { equals: $json.dateISO } }, page_size: 1 }) }}"
+      },
+      "id": "node-find-calendar",
+      "name": "캘린더 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 캘린더 조회 결과 확인\nconst prev = $('프로젝트 매칭 결과').first().json;\nconst results = $input.first().json.results || [];\n\nreturn [{\n  json: {\n    ...prev,\n    calendarId: results.length > 0 ? results[0].id : null,\n    calendarExists: results.length > 0\n  }\n}];"
+      },
+      "id": "node-calendar-check",
+      "name": "캘린더 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-cal-exists",
+              "leftValue": "={{ $json.calendarExists }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-calendar",
+      "name": "캘린더 존재?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1760, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '30bd119f-a669-812c-8bf4-fe603e6a8c6b' }, properties: { '캘린더': { title: [{ text: { content: $json.dateLabel } }] }, '날짜': { date: { start: $json.dateISO } } } }) }}"
+      },
+      "id": "node-create-calendar",
+      "name": "캘린더 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 캘린더 ID 통합 (기존 또는 새로 생성된 것)\nconst prev = $('캘린더 확인').first().json;\nlet calendarId = prev.calendarId;\n\n// 캘린더가 새로 생성된 경우 그 ID 사용\ntry {\n  const created = $('캘린더 생성').first().json;\n  if (created && created.id) calendarId = created.id;\n} catch(e) {}\n\nreturn [{\n  json: {\n    ...prev,\n    calendarId\n  }\n}];"
+      },
+      "id": "node-merge-calendar",
+      "name": "캘린더 ID 통합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $json; const props = { '할 일': { title: [{ text: { content: d.todo } }] }, '상태': { status: { name: '시작 전' } }, '시간 ': { date: { start: d.dateISO } } }; if (d.projectId) { props['프로젝트'] = { relation: [{ id: d.projectId }] }; } if (d.calendarId) { props['캘린더'] = { relation: [{ id: d.calendarId }] }; } return JSON.stringify({ parent: { database_id: '30bd119f-a669-81d0-8730-d824b7bc948c' }, properties: props }); })() }}"
+      },
+      "id": "node-create-todo",
+      "name": "할 일 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2420, 160]
+    },
+    {
+      "parameters": {
+        "chatId": "=7713811206",
+        "text": "={{ (() => { const d = $('캘린더 ID 통합').first().json; let msg = '📅 구글 캘린더 → 노션 등록 완료\\n━━━━━━━━━━━━━━━'; msg += '\\n📋 ' + d.todo; if (d.projectMatched) { msg += '\\n📁 ' + d.projectName; } msg += '\\n🗓 ' + d.dateLabel; return msg; })() }}",
+        "additionalFields": {}
+      },
+      "id": "node-notify",
+      "name": "텔레그램 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2640, 160],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "구글 캘린더 트리거": { "main": [[{ "node": "이벤트 파싱", "type": "main", "index": 0 }]] },
+    "이벤트 파싱": { "main": [[{ "node": "중복 체크", "type": "main", "index": 0 }]] },
+    "중복 체크": { "main": [[{ "node": "중복 아님?", "type": "main", "index": 0 }]] },
+    "중복 아님?": {
+      "main": [
+        [{ "node": "프로젝트 검색", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "프로젝트 검색": { "main": [[{ "node": "프로젝트 매칭 결과", "type": "main", "index": 0 }]] },
+    "프로젝트 매칭 결과": { "main": [[{ "node": "캘린더 조회", "type": "main", "index": 0 }]] },
+    "캘린더 조회": { "main": [[{ "node": "캘린더 확인", "type": "main", "index": 0 }]] },
+    "캘린더 확인": { "main": [[{ "node": "캘린더 존재?", "type": "main", "index": 0 }]] },
+    "캘린더 존재?": {
+      "main": [
+        [{ "node": "캘린더 ID 통합", "type": "main", "index": 0 }],
+        [{ "node": "캘린더 생성", "type": "main", "index": 0 }]
+      ]
+    },
+    "캘린더 생성": { "main": [[{ "node": "캘린더 ID 통합", "type": "main", "index": 0 }]] },
+    "캘린더 ID 통합": { "main": [[{ "node": "할 일 생성", "type": "main", "index": 0 }]] },
+    "할 일 생성": { "main": [[{ "node": "텔레그램 알림", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}
