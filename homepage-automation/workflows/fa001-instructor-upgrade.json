@@ -1,0 +1,413 @@
+{
+  "name": "FA-001: 강사회원 등급 자동 변경 v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "id": "fa001-n01",
+      "name": "5분 스케줄",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": { "__rl": true, "value": "app6MBsHo7AKwh5XD", "mode": "id" },
+        "table": { "__rl": true, "value": "tblo1NVcundJjJKJ3", "mode": "id" },
+        "filterByFormula": "AND({진행 상태}=\"승인완료\",NOT({n8n_처리완료}))",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "fa001-n02",
+      "name": "승인완료 미처리 조회",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [420, 300],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AIRTABLE_CRED_ID",
+          "name": "Airtable PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "fa001-n03",
+      "name": "처리할 건 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {},
+      "id": "fa001-n04",
+      "name": "처리 없음",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [860, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 에어테이블 레코드에서 식별 정보 추출 =====\nconst fields = $json.fields || {};\nconst recordId = $json.id;\n\nconst jasamolId = (fields['자사몰 ID'] || '').trim();\nconst rawMobile = (fields['연락처'] || '').trim();\nconst name = (fields['성함'] || '').trim();\nconst email = (fields['이메일 주소'] || '').trim();\nconst association = (fields['소속 협회'] || '').trim();\n\n// 연락처 정규화: +82 10-XXXX-XXXX → 01XXXXXXXXX\nconst mobile = rawMobile.replace(/[^0-9]/g, '').replace(/^82/, '0');\n\nreturn {\n  json: {\n    jasamolId,\n    mobile,\n    name,\n    email,\n    association,\n    recordId,\n    hasId: jasamolId.length > 0,\n    hasMobile: mobile.length >= 10\n  }\n};"
+      },
+      "id": "fa001-n05",
+      "name": "식별 정보 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.hasId }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "id": "fa001-n06",
+      "name": "자사몰 ID 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://shop.makeshop.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "user" },
+            { "name": "user_id", "value": "={{ $('식별 정보 추출').item.json.jasamolId }}" },
+            { "name": "key", "value": "MAKESHOP_API_KEY_HERE" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "fa001-n07",
+      "name": "메이크샵 회원 조회 (ID)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 메이크샵 회원 조회 응답 파싱 =====\n// 메이크샵 API 응답은 배열 또는 단일 객체일 수 있음\nconst resp = $json;\nconst originalData = $('식별 정보 추출').item.json;\n\nlet userFound = false;\nlet makeshopUserId = '';\n\n// 배열 응답 처리\nif (Array.isArray(resp) && resp.length > 0) {\n  userFound = true;\n  makeshopUserId = resp[0].user_id || resp[0].userid || originalData.jasamolId;\n}\n// 단일 객체 응답 처리\nelse if (resp && typeof resp === 'object') {\n  if (resp.result === 'success' || resp.rtCode === '00000' || resp.user_id || resp.userid) {\n    userFound = true;\n    makeshopUserId = resp.user_id || resp.userid || originalData.jasamolId;\n  }\n}\n\nreturn {\n  json: {\n    ...originalData,\n    userFound,\n    makeshopUserId: makeshopUserId || originalData.jasamolId,\n    failReason: userFound ? '' : '자사몰 ID로 회원을 찾지 못함: ' + originalData.jasamolId\n  }\n};"
+      },
+      "id": "fa001-n08",
+      "name": "조회 응답 파싱 (ID)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.userFound }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "id": "fa001-n09",
+      "name": "회원 존재하는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1740, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://shop.makeshop.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "user" },
+            { "name": "mobile", "value": "={{ $('식별 정보 추출').item.json.mobile }}" },
+            { "name": "key", "value": "MAKESHOP_API_KEY_HERE" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "fa001-n10",
+      "name": "메이크샵 회원 조회 (연락처)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1960, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 연락처 조회 응답 파싱 + 성함 일치 확인 =====\nconst resp = $json;\nconst originalData = $('식별 정보 추출').item.json;\n\nlet userFound = false;\nlet makeshopUserId = '';\nlet respName = '';\n\nif (Array.isArray(resp) && resp.length > 0) {\n  userFound = true;\n  makeshopUserId = resp[0].user_id || resp[0].userid || '';\n  respName = (resp[0].user_name || resp[0].username || resp[0].name || '').trim();\n} else if (resp && typeof resp === 'object') {\n  if (resp.result === 'success' || resp.rtCode === '00000' || resp.user_id || resp.userid) {\n    userFound = true;\n    makeshopUserId = resp.user_id || resp.userid || '';\n    respName = (resp.user_name || resp.username || resp.name || '').trim();\n  }\n}\n\n// 성함 일치 확인 (공백/대소문자 무시)\nconst inputName = originalData.name.replace(/\\s/g, '');\nconst apiName = respName.replace(/\\s/g, '');\nconst nameMatch = userFound && inputName.length > 0 && apiName.length > 0 && inputName === apiName;\n\nreturn {\n  json: {\n    ...originalData,\n    userFound,\n    nameMatch,\n    makeshopUserId,\n    apiName,\n    failReason: !userFound\n      ? '연락처로 회원을 찾지 못함: ' + originalData.mobile\n      : !nameMatch\n        ? '성함 불일치 (에어테이블: ' + originalData.name + ' / 메이크샵: ' + apiName + ')'\n        : ''\n  }\n};"
+      },
+      "id": "fa001-n11",
+      "name": "연락처 조회 파싱 + 성함 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2180, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.userFound && $json.nameMatch }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "id": "fa001-n12",
+      "name": "연락처+성함 일치하는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2400, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://shop.makeshop.co.kr/list/open_api.html",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "mode", "value": "process" },
+            { "name": "type", "value": "user" },
+            { "name": "process", "value": "group_change" },
+            { "name": "user_id", "value": "={{ $json.makeshopUserId }}" },
+            { "name": "group_code", "value": "INSTRUCTOR_GROUP_CODE_HERE" },
+            { "name": "key", "value": "MAKESHOP_API_KEY_HERE" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "fa001-n13",
+      "name": "메이크샵 그룹 변경",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2620, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 그룹 변경 API 응답 파싱 =====\nconst resp = $json;\n\nlet success = false;\n\nif (resp) {\n  // 다양한 성공 응답 형태 처리\n  if (resp.result === 'success' || resp.result === '0000') success = true;\n  else if (resp.rtCode === '00000') success = true;\n  else if (resp.msg && resp.msg.toLowerCase().includes('success')) success = true;\n  // 응답 코드가 없으면 HTTP 200 → 성공으로 간주\n  else if (Object.keys(resp).length > 0) success = true;\n}\n\n// 이전 노드 데이터 유지\nconst prevData = $('연락처 조회 파싱 + 성함 확인').item?.json\n  || $('조회 응답 파싱 (ID)').item?.json\n  || {};\n\nreturn {\n  json: {\n    ...prevData,\n    groupChangeSuccess: success,\n    groupChangeResponse: JSON.stringify(resp)\n  }\n};"
+      },
+      "id": "fa001-n14",
+      "name": "그룹 변경 응답 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2840, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.groupChangeSuccess }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "id": "fa001-n15",
+      "name": "그룹 변경 성공했는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [3060, 100]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": { "__rl": true, "value": "app6MBsHo7AKwh5XD", "mode": "id" },
+        "table": { "__rl": true, "value": "tblo1NVcundJjJKJ3", "mode": "id" },
+        "id": "={{ $json.recordId }}",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "n8n_처리완료", "fieldValue": "true" },
+            {
+              "fieldId": "n8n_처리일시",
+              "fieldValue": "={{ new Date(new Date().getTime() + 9*60*60*1000).toISOString().replace('Z', '+09:00') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fa001-n16",
+      "name": "에어테이블 처리완료 기록",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [3280, 100],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AIRTABLE_CRED_ID",
+          "name": "Airtable PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ '✅ 강사회원 등업 완료\\n\\n이름: ' + $json.name + '\\n아이디: ' + $json.makeshopUserId + '\\n협회: ' + ($json.association || '-') }}",
+        "additionalFields": {}
+      },
+      "id": "fa001-n17",
+      "name": "텔레그램 성공 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3500, 100],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 수동 처리 요청 메시지 조립 =====\n// 가능한 모든 경로에서 원본 데이터 접근 시도\nlet data = {};\n\ntry { data = $('식별 정보 추출').item.json; } catch(e) {}\ntry { data = { ...data, ...$('연락처 조회 파싱 + 성함 확인').item.json }; } catch(e) {}\ntry { data = { ...data, ...$('조회 응답 파싱 (ID)').item.json }; } catch(e) {}\ntry { data = { ...data, ...$('그룹 변경 응답 파싱').item.json }; } catch(e) {}\n\nconst reason = data.failReason || '원인 불명';\nconst name = data.name || '(이름 없음)';\nconst jasamolId = data.jasamolId || '(미입력)';\nconst mobile = data.mobile || '(미입력)';\nconst email = data.email || '(미입력)';\nconst association = data.association || '(미입력)';\n\nconst message = `⚠️ 강사 등업 수동 처리 필요\\n\\n이름: ${name}\\n자사몰ID: ${jasamolId}\\n연락처: ${mobile}\\n이메일: ${email}\\n협회: ${association}\\n\\n사유: ${reason}\\n\\n→ 메이크샵 관리자에서 직접 등업 후\\n에어테이블 n8n_처리완료 체크 바랍니다`;\n\nreturn { json: { message } };"
+      },
+      "id": "fa001-n18",
+      "name": "수동 처리 메시지 조립",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2620, 480]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "fa001-n19",
+      "name": "텔레그램 수동 처리 요청",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2840, 480],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "Telegram Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "5분 스케줄": {
+      "main": [
+        [{ "node": "승인완료 미처리 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "승인완료 미처리 조회": {
+      "main": [
+        [{ "node": "처리할 건 있는가", "type": "main", "index": 0 }]
+      ]
+    },
+    "처리할 건 있는가": {
+      "main": [
+        [{ "node": "식별 정보 추출", "type": "main", "index": 0 }],
+        [{ "node": "처리 없음", "type": "main", "index": 0 }]
+      ]
+    },
+    "식별 정보 추출": {
+      "main": [
+        [{ "node": "자사몰 ID 있는가", "type": "main", "index": 0 }]
+      ]
+    },
+    "자사몰 ID 있는가": {
+      "main": [
+        [{ "node": "메이크샵 회원 조회 (ID)", "type": "main", "index": 0 }],
+        [{ "node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0 }]
+      ]
+    },
+    "메이크샵 회원 조회 (ID)": {
+      "main": [
+        [{ "node": "조회 응답 파싱 (ID)", "type": "main", "index": 0 }]
+      ]
+    },
+    "조회 응답 파싱 (ID)": {
+      "main": [
+        [{ "node": "회원 존재하는가", "type": "main", "index": 0 }]
+      ]
+    },
+    "회원 존재하는가": {
+      "main": [
+        [{ "node": "메이크샵 그룹 변경", "type": "main", "index": 0 }],
+        [{ "node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0 }]
+      ]
+    },
+    "메이크샵 회원 조회 (연락처)": {
+      "main": [
+        [{ "node": "연락처 조회 파싱 + 성함 확인", "type": "main", "index": 0 }]
+      ]
+    },
+    "연락처 조회 파싱 + 성함 확인": {
+      "main": [
+        [{ "node": "연락처+성함 일치하는가", "type": "main", "index": 0 }]
+      ]
+    },
+    "연락처+성함 일치하는가": {
+      "main": [
+        [{ "node": "메이크샵 그룹 변경", "type": "main", "index": 0 }],
+        [{ "node": "수동 처리 메시지 조립", "type": "main", "index": 0 }]
+      ]
+    },
+    "메이크샵 그룹 변경": {
+      "main": [
+        [{ "node": "그룹 변경 응답 파싱", "type": "main", "index": 0 }]
+      ]
+    },
+    "그룹 변경 응답 파싱": {
+      "main": [
+        [{ "node": "그룹 변경 성공했는가", "type": "main", "index": 0 }]
+      ]
+    },
+    "그룹 변경 성공했는가": {
+      "main": [
+        [{ "node": "에어테이블 처리완료 기록", "type": "main", "index": 0 }],
+        [{ "node": "수동 처리 메시지 조립", "type": "main", "index": 0 }]
+      ]
+    },
+    "에어테이블 처리완료 기록": {
+      "main": [
+        [{ "node": "텔레그램 성공 알림", "type": "main", "index": 0 }]
+      ]
+    },
+    "수동 처리 메시지 조립": {
+      "main": [
+        [{ "node": "텔레그램 수동 처리 요청", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
