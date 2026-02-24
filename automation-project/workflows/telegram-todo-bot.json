@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "updates": ["message"],
+        "updates": ["message", "callback_query"],
         "additionalFields": {}
       },
       "id": "node-trigger",
@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== 메시지 파싱 + 커맨드 라우팅 =====\n// 입력 형식:\n//   할 일 등록:  '[프로젝트 - ]할 일 [@날짜] [~목표날짜] [#메모]'\n//   날짜 키워드: 오늘, 내일, 모레, 다음주, 월~일, M/D\n//   시간 형식:   14:00, 9:30, 오전10시, 오후3시30분\n//   커맨드:     /목록, /완료 [번호], /상태 [번호] [상태명], /밀린, /도움말\n\nconst message = $input.first().json.message;\nconst text = (message.text || '').trim();\nconst chatId = message.chat.id;\n\n// --- 날짜 파싱 헬퍼 ---\nfunction addDays(date, days) {\n  const r = new Date(date); r.setDate(r.getDate() + days); return r;\n}\nfunction formatDateLabel(date) {\n  const days = ['일','월','화','수','목','금','토'];\n  return `${date.getMonth()+1}/${date.getDate()}(${days[date.getDay()]})`;\n}\nfunction formatDateISO(date) {\n  const y = date.getFullYear();\n  const m = String(date.getMonth()+1).padStart(2,'0');\n  const d = String(date.getDate()).padStart(2,'0');\n  return `${y}-${m}-${d}`;\n}\nfunction parseDateKeyword(keyword) {\n  const now = new Date();\n  // n8n 서버가 UTC이므로 KST(+9) 기준 오늘 날짜 계산\n  const kst = new Date(now.getTime() + 9*60*60*1000);\n  const today = new Date(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate());\n  if (!keyword) return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n  const clean = keyword.replace(/^[@~]/, '').trim();\n  if (clean === '오늘') return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n  if (clean === '내일') { const d = addDays(today,1); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  if (clean === '모레') { const d = addDays(today,2); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  if (clean === '다음주') { const d = addDays(today,7); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  const dayMap = {'월':1,'화':2,'수':3,'목':4,'금':5,'토':6,'일':0};\n  if (dayMap[clean] !== undefined) {\n    let diff = dayMap[clean] - today.getDay();\n    if (diff <= 0) diff += 7;\n    const d = addDays(today, diff);\n    return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) };\n  }\n  const m = clean.match(/^(\\d{1,2})\\/(\\d{1,2})$/);\n  if (m) {\n    let d = new Date(today.getFullYear(), parseInt(m[1],10)-1, parseInt(m[2],10));\n    if (d < today) d.setFullYear(d.getFullYear()+1);\n    return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) };\n  }\n  return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n}\n\n// --- 시간 파싱 헬퍼 ---\nfunction parseTimeStr(s) {\n  if (!s) return null;\n  const clean = s.trim();\n  // 오전/오후 한국어 형식: 오전10시, 오후3시30분\n  const korMatch = clean.match(/^(오전|오후)\\s*(\\d{1,2})시(?:(\\d{1,2})분)?$/);\n  if (korMatch) {\n    let hour = parseInt(korMatch[2], 10);\n    const minute = korMatch[3] ? parseInt(korMatch[3], 10) : 0;\n    if (korMatch[1] === '오후' && hour < 12) hour += 12;\n    if (korMatch[1] === '오전' && hour === 12) hour = 0;\n    const lbl = korMatch[1] + korMatch[2] + '시' + (korMatch[3] ? korMatch[3] + '분' : '');\n    return { hour, minute, label: lbl };\n  }\n  // 숫자:분 형식: 14:00, 9:30\n  const numMatch = clean.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (numMatch) {\n    const hour = parseInt(numMatch[1], 10);\n    const minute = parseInt(numMatch[2], 10);\n    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {\n      const ampm = hour < 12 ? '오전' : '오후';\n      const h12 = hour % 12 || 12;\n      const lbl = ampm + h12 + '시' + (minute > 0 ? minute + '분' : '');\n      return { hour, minute, label: lbl };\n    }\n  }\n  return null;\n}\n\n// --- 커맨드 체크 ---\nif (text.startsWith('/')) {\n  const parts = text.trim().split(/\\s+/);\n  const cmd = parts[0].split('@')[0]; // @봇이름 제거\n  const args = parts.slice(1);\n  return [{ json: { type: 'command', command: cmd, args, chatId, raw: text } }];\n}\n\n// --- 일반 메시지 파싱 ---\n// @날짜 [시간], ~목표날짜, #메모 추출\nconst atMatch = text.match(/@(\\S+)(?:\\s+((?:오전|오후)\\s*\\d{1,2}시(?:\\d{1,2}분)?|\\d{1,2}:\\d{2}))?/);\nconst tildeMatch = text.match(/~(\\S+)/);\nconst hashMatch = text.match(/#(.+?)(?=[@~#]|$)/);\n\nconst dateKeyword = atMatch ? atMatch[1] : null;\nconst rawTimeStr = atMatch ? atMatch[2] : null;\nconst dueKeyword = tildeMatch ? tildeMatch[1] : null;\nconst memo = hashMatch ? hashMatch[1].trim() : '';\n\n// 특수 토큰 제거 후 본문 추출\nlet textBody = text\n  .replace(/@\\S+(?:\\s+(?:(?:오전|오후)\\s*\\d{1,2}시(?:\\d{1,2}분)?|\\d{1,2}:\\d{2}))?/g, '')\n  .replace(/~\\S+/g, '')\n  .replace(/#.*/g, '')\n  .trim();\n\n// 프로젝트 - 할 일 분리\nlet project = null;\nlet todo = textBody;\nconst sepIdx = textBody.indexOf(' - ');\nif (sepIdx !== -1) {\n  project = textBody.substring(0, sepIdx).trim();\n  todo = textBody.substring(sepIdx + 3).trim();\n}\n\nconst parsed = parseDateKeyword(dateKeyword);\nconst dueParsed = dueKeyword ? parseDateKeyword(dueKeyword) : null;\nconst timeParsed = parseTimeStr(rawTimeStr);\n\n// dateStart: 시간 포함 시 datetime ISO(KST), 아니면 date만\nlet dateStart = parsed.iso;\nlet timeLabel = null;\nif (timeParsed) {\n  const hh = String(timeParsed.hour).padStart(2, '0');\n  const mm = String(timeParsed.minute).padStart(2, '0');\n  dateStart = parsed.iso + 'T' + hh + ':' + mm + ':00+09:00';\n  timeLabel = timeParsed.label;\n}\n\nconst dateLabel = parsed.label + (timeLabel ? ' ' + timeLabel : '');\n\nreturn [{\n  json: {\n    type: 'message',\n    project,\n    todo,\n    dateISO: parsed.iso,\n    dateStart,\n    dateLabel,\n    dueISO: dueParsed ? dueParsed.iso : null,\n    dueLabel: dueParsed ? dueParsed.label : null,\n    memo,\n    chatId,\n    raw: text\n  }\n}];"
+        "jsCode": "// ===== 메시지 파싱 + 커맨드 라우팅 =====\n// 입력 형식:\n//   할 일 등록:  '[프로젝트 - ]할 일 [@날짜] [~목표날짜] [#메모]'\n//   날짜 키워드: 오늘, 내일, 모레, 다음주, 월~일, M/D\n//   시간 형식:   14:00, 9:30, 오전10시, 오후3시30분\n//   커맨드:     /목록, /완료 [번호], /상태 [번호] [상태명], /밀린, /도움말\n\n// callback_query (인라인 버튼 클릭) 처리\nconst callbackQuery = $input.first().json.callback_query;\nif (callbackQuery) {\n  return [{\n    json: {\n      type: 'callback',\n      callbackData: callbackQuery.data || '',\n      chatId: callbackQuery.message.chat.id,\n      messageId: callbackQuery.message.message_id,\n      callbackQueryId: callbackQuery.id\n    }\n  }];\n}\n\nconst message = $input.first().json.message;\nconst text = (message.text || '').trim();\nconst chatId = message.chat.id;\n\n// --- 날짜 파싱 헬퍼 ---\nfunction addDays(date, days) {\n  const r = new Date(date); r.setDate(r.getDate() + days); return r;\n}\nfunction formatDateLabel(date) {\n  const days = ['일','월','화','수','목','금','토'];\n  return `${date.getMonth()+1}/${date.getDate()}(${days[date.getDay()]})`;\n}\nfunction formatDateISO(date) {\n  const y = date.getFullYear();\n  const m = String(date.getMonth()+1).padStart(2,'0');\n  const d = String(date.getDate()).padStart(2,'0');\n  return `${y}-${m}-${d}`;\n}\nfunction parseDateKeyword(keyword) {\n  const now = new Date();\n  // n8n 서버가 UTC이므로 KST(+9) 기준 오늘 날짜 계산\n  const kst = new Date(now.getTime() + 9*60*60*1000);\n  const today = new Date(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate());\n  if (!keyword) return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n  const clean = keyword.replace(/^[@~]/, '').trim();\n  if (clean === '오늘') return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n  if (clean === '내일') { const d = addDays(today,1); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  if (clean === '모레') { const d = addDays(today,2); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  if (clean === '다음주') { const d = addDays(today,7); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  const dayMap = {'월':1,'화':2,'수':3,'목':4,'금':5,'토':6,'일':0};\n  if (dayMap[clean] !== undefined) {\n    let diff = dayMap[clean] - today.getDay();\n    if (diff <= 0) diff += 7;\n    const d = addDays(today, diff);\n    return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) };\n  }\n  const m = clean.match(/^(\\d{1,2})\\/(\\d{1,2})$/);\n  if (m) {\n    let d = new Date(today.getFullYear(), parseInt(m[1],10)-1, parseInt(m[2],10));\n    if (d < today) d.setFullYear(d.getFullYear()+1);\n    return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) };\n  }\n  return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n}\n\n// --- 시간 파싱 헬퍼 ---\nfunction parseTimeStr(s) {\n  if (!s) return null;\n  const clean = s.trim();\n  // 오전/오후 한국어 형식: 오전10시, 오후3시30분\n  const korMatch = clean.match(/^(오전|오후)\\s*(\\d{1,2})시(?:(\\d{1,2})분)?$/);\n  if (korMatch) {\n    let hour = parseInt(korMatch[2], 10);\n    const minute = korMatch[3] ? parseInt(korMatch[3], 10) : 0;\n    if (korMatch[1] === '오후' && hour < 12) hour += 12;\n    if (korMatch[1] === '오전' && hour === 12) hour = 0;\n    const lbl = korMatch[1] + korMatch[2] + '시' + (korMatch[3] ? korMatch[3] + '분' : '');\n    return { hour, minute, label: lbl };\n  }\n  // 숫자:분 형식: 14:00, 9:30\n  const numMatch = clean.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (numMatch) {\n    const hour = parseInt(numMatch[1], 10);\n    const minute = parseInt(numMatch[2], 10);\n    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {\n      const ampm = hour < 12 ? '오전' : '오후';\n      const h12 = hour % 12 || 12;\n      const lbl = ampm + h12 + '시' + (minute > 0 ? minute + '분' : '');\n      return { hour, minute, label: lbl };\n    }\n  }\n  return null;\n}\n\n// --- 커맨드 체크 ---\nif (text.startsWith('/')) {\n  const parts = text.trim().split(/\\s+/);\n  const cmd = parts[0].split('@')[0]; // @봇이름 제거\n  const args = parts.slice(1);\n  return [{ json: { type: 'command', command: cmd, args, chatId, raw: text } }];\n}\n\n// --- 일반 메시지 파싱 ---\n// @날짜 [시간], ~목표날짜, #메모 추출\nconst atMatch = text.match(/@(\\S+)(?:\\s+((?:오전|오후)\\s*\\d{1,2}시(?:\\d{1,2}분)?|\\d{1,2}:\\d{2}))?/);\nconst tildeMatch = text.match(/~(\\S+)/);\nconst hashMatch = text.match(/#(.+?)(?=[@~#]|$)/);\n\nconst dateKeyword = atMatch ? atMatch[1] : null;\nconst rawTimeStr = atMatch ? atMatch[2] : null;\nconst dueKeyword = tildeMatch ? tildeMatch[1] : null;\nconst memo = hashMatch ? hashMatch[1].trim() : '';\n\n// 특수 토큰 제거 후 본문 추출\nlet textBody = text\n  .replace(/@\\S+(?:\\s+(?:(?:오전|오후)\\s*\\d{1,2}시(?:\\d{1,2}분)?|\\d{1,2}:\\d{2}))?/g, '')\n  .replace(/~\\S+/g, '')\n  .replace(/#.*/g, '')\n  .trim();\n\n// 프로젝트 - 할 일 분리\nlet project = null;\nlet todo = textBody;\nconst sepIdx = textBody.indexOf(' - ');\nif (sepIdx !== -1) {\n  project = textBody.substring(0, sepIdx).trim();\n  todo = textBody.substring(sepIdx + 3).trim();\n}\n\nconst parsed = parseDateKeyword(dateKeyword);\nconst dueParsed = dueKeyword ? parseDateKeyword(dueKeyword) : null;\nconst timeParsed = parseTimeStr(rawTimeStr);\n\n// dateStart: 시간 포함 시 datetime ISO(KST), 아니면 date만\nlet dateStart = parsed.iso;\nlet timeLabel = null;\nif (timeParsed) {\n  const hh = String(timeParsed.hour).padStart(2, '0');\n  const mm = String(timeParsed.minute).padStart(2, '0');\n  dateStart = parsed.iso + 'T' + hh + ':' + mm + ':00+09:00';\n  timeLabel = timeParsed.label;\n}\n\nconst dateLabel = parsed.label + (timeLabel ? ' ' + timeLabel : '');\n\nreturn [{\n  json: {\n    type: 'message',\n    project,\n    todo,\n    dateISO: parsed.iso,\n    dateStart,\n    dateLabel,\n    dueISO: dueParsed ? dueParsed.iso : null,\n    dueLabel: dueParsed ? dueParsed.label : null,\n    memo,\n    chatId,\n    raw: text\n  }\n}];"
       },
       "id": "node-parse",
       "name": "메시지 파싱",
@@ -32,7 +32,7 @@
       "parameters": {
         "mode": "rules",
         "dataType": "string",
-        "value1": "={{ $json.type === 'command' ? $json.command : 'message' }}",
+        "value1": "={{ $json.type === 'command' ? $json.command : $json.type }}",
         "rules": {
           "rules": [
             { "operation": "equal", "value2": "message", "output": 0 },
@@ -43,7 +43,10 @@
             { "operation": "equal", "value2": "/도움말", "output": 2 },
             { "operation": "equal", "value2": "/help", "output": 2 },
             { "operation": "equal", "value2": "/밀린", "output": 3 },
-            { "operation": "equal", "value2": "/프로젝트", "output": 4 }
+            { "operation": "equal", "value2": "/프로젝트", "output": 4 },
+            { "operation": "equal", "value2": "callback", "output": 5 },
+            { "operation": "equal", "value2": "/주간", "output": 6 },
+            { "operation": "equal", "value2": "/수정", "output": 7 }
           ]
         }
       },
@@ -267,7 +270,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 확인 메시지 포맷팅\nconst prev = $('캘린더 ID 통합').first().json;\n\nlet msg = '\\u2705 할 일 등록 완료\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501';\nmsg += `\\n\\ud83d\\udccb ${prev.todo}`;\nif (prev.projectMatched) {\n  msg += `\\n\\ud83d\\udcc1 ${prev.projectName}`;\n} else if (prev.project) {\n  msg += `\\n\\ud83d\\udcc1 ${prev.project} \\u26a0\\ufe0f \\ubbf8\\ub9e4\\uce6d`;\n} else {\n  msg += `\\n\\ud83d\\udcc1 \\ubbf8\\uc9c0\\uc815 (\\uce98\\ub9b0\\ub354 \\ubdf0 \\ubbf8\\ud45c\\uc2dc)`;\n  msg += `\\n\\ud83d\\udca1 \\uce98\\ub9b0\\ub354\\uc5d0 \\ud45c\\uc2dc\\ud558\\ub824\\uba74: \\ud504\\ub85c\\uc81d\\ud2b8 - \\ud560 \\uc77c \\ud615\\uc2dd`;\n  msg += `\\n   \\uc608) \\uc6b4\\ub3d9 - \\ub18d\\uad6c @\\uc624\\ub298`;\n}\nif (prev.usedAI === false) msg += '\\n\\u26a0\\ufe0f \\uae30\\ubcf8 \\ud30c\\uc11c \\uc0ac\\uc6a9';\nmsg += `\\n\\ud83d\\udcc5 ${prev.dateLabel}`;\nif (prev.dueLabel) {\n  msg += `\\n\\ud83c\\udfaf \\ubaa9\\ud45c: ${prev.dueLabel}`;\n}\nif (prev.memo) {\n  msg += `\\n\\ud83d\\udcdd \\uba54\\ubaa8: ${prev.memo}`;\n}\n\nreturn [{ json: { chatId: prev.chatId, text: msg } }];"
+        "jsCode": "// 확인 메시지 포맷팅\nconst prev = $('캘린더 ID 통합').first().json;\nconst notionPage = $input.first().json;\nconst pageId = notionPage.id || '';\n\nlet msg = '\\u2705 할 일 등록 완료\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501';\nmsg += `\\n\\ud83d\\udccb ${prev.todo}`;\nif (prev.projectMatched) {\n  msg += `\\n\\ud83d\\udcc1 ${prev.projectName}`;\n} else if (prev.project) {\n  msg += `\\n\\ud83d\\udcc1 ${prev.project} \\u26a0\\ufe0f \\ubbf8\\ub9e4\\uce6d`;\n} else {\n  msg += `\\n\\ud83d\\udcc1 \\ubbf8\\uc9c0\\uc815 (\\uce98\\ub9b0\\ub354 \\ubdf0 \\ubbf8\\ud45c\\uc2dc)`;\n  msg += `\\n\\ud83d\\udca1 \\uce98\\ub9b0\\ub354\\uc5d0 \\ud45c\\uc2dc\\ud558\\ub824\\uba74: \\ud504\\ub85c\\uc81d\\ud2b8 - \\ud560 \\uc77c \\ud615\\uc2dd`;\n  msg += `\\n   \\uc608) \\uc6b4\\ub3d9 - \\ub18d\\uad6c @\\uc624\\ub298`;\n}\nif (prev.usedAI === false) msg += '\\n\\u26a0\\ufe0f \\uae30\\ubcf8 \\ud30c\\uc11c \\uc0ac\\uc6a9';\nmsg += `\\n\\ud83d\\udcc5 ${prev.dateLabel}`;\nif (prev.dueLabel) {\n  msg += `\\n\\ud83c\\udfaf \\ubaa9\\ud45c: ${prev.dueLabel}`;\n}\nif (prev.memo) {\n  msg += `\\n\\ud83d\\udcdd \\uba54\\ubaa8: ${prev.memo}`;\n}\n\nreturn [{ json: { chatId: prev.chatId, text: msg, pageId } }];"
       },
       "id": "node-format-reply",
       "name": "확인 메시지 포맷",
@@ -277,21 +280,17 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $json.chatId }}",
-        "text": "={{ $json.text }}",
-        "additionalFields": {}
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $json; const body = { chat_id: d.chatId, text: d.text }; if (d.pageId) { body.reply_markup = { inline_keyboard: [[{ text: '\\u2705 완료', callback_data: 'done:' + d.pageId }, { text: '\\ud83d\\udd35 진행중', callback_data: 'inprogress:' + d.pageId }, { text: '\\ud83d\\udccc 핀', callback_data: 'pin:' + d.pageId }]] }; } return JSON.stringify(body); })() }}"
       },
       "id": "node-reply",
       "name": "확인 회신",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [3520, 60],
-      "credentials": {
-        "telegramApi": {
-          "id": "1",
-          "name": "Telegram Bot"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3520, 60]
     },
 
     {
@@ -317,7 +316,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// /목록 결과 포맷팅\nconst chatId = $('메시지 파싱').first().json.chatId;\nconst results = $input.first().json.results || [];\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9*60*60*1000);\nconst days = ['일','월','화','수','목','금','토'];\nconst dateLabel = `${kst.getUTCMonth()+1}/${kst.getUTCDate()}(${days[kst.getUTCDay()]})`;\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n\\n등록된 할 일이 없습니다.\\n\\n할 일 등록: 운동 @오늘` } }];\n}\n\nconst statusIcon = { '진행 중': '🔵', '거의 완료': '🟡', '핀': '📌', '완료': '✅', '취소': '❌', '못함': '💤' };\n\nlet msg = `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n`;\n\nresults.forEach((item, i) => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const status = item.properties['상태']?.status?.name || '시작 전';\n  const icon = statusIcon[status] || '⬜';\n  msg += `\\n${icon} ${i+1}. ${title}`;\n  if (status !== '시작 전') msg += ` [${status}]`;\n});\n\nmsg += `\\n\\n📊 총 ${results.length}건`;\nmsg += `\\n\\n💡 /완료 [번호]  /상태 [번호] [상태명]`;\n\nreturn [{ json: { chatId, text: msg } }];"
+        "jsCode": "// /목록 결과 포맷팅\nconst chatId = $('메시지 파싱').first().json.chatId;\nconst results = $input.first().json.results || [];\n\n// static data에 저장 (for /수정 커맨드)\nconst staticData = $getWorkflowStaticData('global');\nstaticData.lastList = results.map((item, i) => ({\n  index: i + 1,\n  pageId: item.id,\n  title: item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)'\n}));\n\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9*60*60*1000);\nconst days = ['일','월','화','수','목','금','토'];\nconst dateLabel = `${kst.getUTCMonth()+1}/${kst.getUTCDate()}(${days[kst.getUTCDay()]})`;\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n\\n등록된 할 일이 없습니다.\\n\\n할 일 등록: 운동 @오늘` } }];\n}\n\nconst statusIcon = { '진행 중': '🔵', '거의 완료': '🟡', '핀': '📌', '완료': '✅', '취소': '❌', '못함': '💤' };\n\nlet msg = `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n`;\n\nresults.forEach((item, i) => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const status = item.properties['상태']?.status?.name || '시작 전';\n  const icon = statusIcon[status] || '⬜';\n  msg += `\\n${icon} ${i+1}. ${title}`;\n  if (status !== '시작 전') msg += ` [${status}]`;\n});\n\nmsg += `\\n\\n📊 총 ${results.length}건`;\nmsg += `\\n\\n💡 /완료 [번호]  /상태 [번호] [상태명]`;\n\nreturn [{ json: { chatId, text: msg } }];"
       },
       "id": "node-format-list",
       "name": "목록 포맷",
@@ -545,6 +544,210 @@
     },
     {
       "parameters": {
+        "jsCode": "// callback_query: callback_data 파싱 (형식: statusCode:pageId)\nconst data = $json;\nconst callbackData = data.callbackData || '';\nconst colonIdx = callbackData.indexOf(':');\nconst statusCode = colonIdx !== -1 ? callbackData.substring(0, colonIdx) : '';\nconst pageId = colonIdx !== -1 ? callbackData.substring(colonIdx + 1) : '';\n\nconst statusMap = { 'done': '완료', 'inprogress': '진행 중', 'pin': '핀' };\nconst statusName = statusMap[statusCode];\n\nif (!statusName || !pageId) {\n  return [{ json: { ...data, valid: false } }];\n}\n\nreturn [{ json: { ...data, statusCode, statusName, pageId, valid: true } }];"
+      },
+      "id": "node-callback-parse",
+      "name": "Callback 처리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.statusName + ' 처리 중...' }) }}"
+      },
+      "id": "node-callback-answer",
+      "name": "CallbackQuery 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 1200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $('Callback 처리').first().json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { '상태': { status: { name: $('Callback 처리').first().json.statusName } } } }) }}"
+      },
+      "id": "node-callback-notion",
+      "name": "Notion 상태 변경 (Callback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 1200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/editMessageText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $('Callback 처리').first().json; const statusIcon = {'완료':'\\u2705','진행 중':'\\ud83d\\udd35','핀':'\\ud83d\\udccc'}; const icon = statusIcon[d.statusName] || '\\ud83d\\udd04'; return JSON.stringify({ chat_id: d.chatId, message_id: d.messageId, text: icon + ' ' + d.statusName + ' 처리되었습니다.', reply_markup: { inline_keyboard: [] } }); })() }}"
+      },
+      "id": "node-callback-edit",
+      "name": "메시지 버튼 제거",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 1200]
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// 이번 주 월~일 날짜 범위 계산 (KST 기준)\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9*60*60*1000);\nconst chatId = $('메시지 파싱').first().json.chatId;\n\nconst day = kst.getUTCDay(); // 0=일, 1=월\nconst daysFromMon = day === 0 ? 6 : day - 1;\n\nconst monday = new Date(kst);\nmonday.setUTCDate(monday.getUTCDate() - daysFromMon);\nmonday.setUTCHours(0, 0, 0, 0);\n\nconst sunday = new Date(monday);\nsunday.setUTCDate(monday.getUTCDate() + 6);\n\nconst monISO = monday.toISOString().split('T')[0];\nconst sunISO = sunday.toISOString().split('T')[0];\n\nreturn [{ json: { monISO, sunISO, chatId } }];"
+      },
+      "id": "node-weekly-calc",
+      "name": "이번 주 날짜 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 1400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ property: '시간 ', date: { on_or_after: $json.monISO } }, { property: '시간 ', date: { on_or_before: $json.sunISO } }] }, sorts: [{ property: '시간 ', direction: 'ascending' }], page_size: 100 }) }}"
+      },
+      "id": "node-weekly-query",
+      "name": "이번 주 할 일 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 1400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 주간 포맷 + static data 저장 (for /수정 커맨드)\nconst ctx = $('이번 주 날짜 계산').first().json;\nconst chatId = ctx.chatId;\nconst results = $input.first().json.results || [];\n\n// static data 저장 (번호→pageId 매핑)\nconst staticData = $getWorkflowStaticData('global');\nstaticData.lastList = results.map((item, i) => ({\n  index: i + 1,\n  pageId: item.id,\n  title: item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)'\n}));\n\nconst total = results.length;\nconst doneCount = results.filter(r => r.properties['상태']?.status?.name === '완료').length;\nconst rate = total > 0 ? Math.round(doneCount / total * 100) : 0;\n\nconst statusIcon = {'진행 중':'\\ud83d\\udd35','거의 완료':'\\ud83d\\udfe1','핀':'\\ud83d\\udccc','완료':'\\u2705','취소':'\\u274c','못함':'\\ud83d\\udca4','시작 전':'\\u2b1c'};\nconst days = ['일','월','화','수','목','금','토'];\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: `\\ud83d\\udcc5 이번 주 (${ctx.monISO.substring(5)} ~ ${ctx.sunISO.substring(5)})\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\n등록된 할 일이 없습니다.` } }];\n}\n\nconst grouped = {};\nresults.forEach((item, i) => {\n  const dateRaw = item.properties['시간 ']?.date?.start || '날짜없음';\n  const date = dateRaw.split('T')[0];\n  if (!grouped[date]) grouped[date] = [];\n  grouped[date].push({ item, index: i + 1 });\n});\n\nlet msg = `\\ud83d\\udcc5 이번 주 할 일 (${ctx.monISO.substring(5)} ~ ${ctx.sunISO.substring(5)})\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n`;\n\nfor (const [date, items] of Object.entries(grouped).sort()) {\n  const dateObj = new Date(date + 'T00:00:00+09:00');\n  const m = dateObj.getMonth() + 1;\n  const d = dateObj.getDate();\n  msg += `\\n${m}/${d}(${days[dateObj.getDay()]})\\n`;\n  items.forEach(({ item, index }) => {\n    const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n    const status = item.properties['상태']?.status?.name || '시작 전';\n    const icon = statusIcon[status] || '\\u2b1c';\n    msg += `${icon} ${index}. ${title}\\n`;\n  });\n}\n\nmsg += `\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\ud83d\\udcca ${total}건 | \\u2705 완료율 ${rate}% (${doneCount}/${total})\\n\\ud83d\\udca1 /수정 [번호] [내용] 또는 /수정 [번호] @날짜`;\n\nreturn [{ json: { chatId, text: msg } }];"
+      },
+      "id": "node-weekly-format",
+      "name": "주간 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 1400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-weekly-reply",
+      "name": "주간 회신",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1320, 1400],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "Telegram Bot" }
+      }
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// /수정 커맨드 파싱\nconst data = $('메시지 파싱').first().json;\nconst args = data.args || [];\nconst chatId = data.chatId;\n\nconst num = parseInt(args[0]);\nconst content = args.slice(1).join(' ').trim();\n\nif (!num || num < 1 || !content) {\n  return [{ json: { chatId, valid: false, errorMsg: '형식: /수정 [번호] [새 제목] 또는 @날짜\\n예) /수정 1 새로운 제목\\n    /수정 2 @내일' } }];\n}\n\nconst staticData = $getWorkflowStaticData('global');\nconst lastList = staticData.lastList || [];\n\nif (lastList.length === 0) {\n  return [{ json: { chatId, valid: false, errorMsg: '/목록 또는 /주간 먼저 실행하세요.' } }];\n}\n\nconst target = lastList.find(item => item.index === num);\nif (!target) {\n  return [{ json: { chatId, valid: false, errorMsg: `${num}번 항목을 찾을 수 없습니다.\\n/목록 또는 /주간 후 번호를 확인하세요.` } }];\n}\n\nconst isDateChange = content.startsWith('@');\n\nif (isDateChange) {\n  const keyword = content.replace(/^@/, '').trim();\n  function parseDateKeyword(kw) {\n    const now = new Date();\n    const kst = new Date(now.getTime() + 9*60*60*1000);\n    const today = new Date(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate());\n    function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }\n    function toISO(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }\n    if (kw === '오늘') return toISO(today);\n    if (kw === '내일') return toISO(addDays(today, 1));\n    if (kw === '모레') return toISO(addDays(today, 2));\n    if (kw === '다음주') return toISO(addDays(today, 7));\n    const dayMap = {'월':1,'화':2,'수':3,'목':4,'금':5,'토':6,'일':0};\n    if (dayMap[kw] !== undefined) { let diff = dayMap[kw] - today.getDay(); if (diff <= 0) diff += 7; return toISO(addDays(today, diff)); }\n    const m = kw.match(/^(\\d{1,2})\\/(\\d{1,2})$/);\n    if (m) { let d = new Date(today.getFullYear(), parseInt(m[1])-1, parseInt(m[2])); if (d < today) d.setFullYear(d.getFullYear()+1); return toISO(d); }\n    return toISO(today);\n  }\n  const newDate = parseDateKeyword(keyword);\n  const patchBody = { properties: { '시간 ': { date: { start: newDate } } } };\n  return [{ json: { chatId, valid: true, pageId: target.pageId, title: target.title, patchBody, successMsg: `\\ud83d\\uddd3 날짜 변경\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\ud83d\\udccb ${target.title}\\n\\ud83d\\udcc5 ${newDate}` } }];\n}\n\nconst patchBody = { properties: { '할 일': { title: [{ text: { content } }] } } };\nreturn [{ json: { chatId, valid: true, pageId: target.pageId, title: target.title, patchBody, successMsg: `\\u270f\\ufe0f 제목 변경\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n\\u2192 ${content}` } }];"
+      },
+      "id": "node-edit-parse",
+      "name": "수정 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 1600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-edit-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-edit-if",
+      "name": "수정 유효?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 1600]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patchBody) }}"
+      },
+      "id": "node-edit-notion",
+      "name": "노션 수정 PATCH",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 1520]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('수정 파싱').first().json.chatId }}",
+        "text": "={{ $('수정 파싱').first().json.successMsg }}",
+        "additionalFields": {}
+      },
+      "id": "node-edit-success-reply",
+      "name": "수정 완료 회신",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1320, 1520],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "Telegram Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.errorMsg }}",
+        "additionalFields": {}
+      },
+      "id": "node-edit-error-reply",
+      "name": "수정 오류 회신",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 1680],
+      "credentials": {
+        "telegramApi": { "id": "1", "name": "Telegram Bot" }
+      }
+    },
+
+    {
+      "parameters": {
         "chatId": "={{ $json.chatId }}",
         "text": "=📁 프로젝트 목록\n━━━━━━━━━━━━━━━\n\n🎯 마케팅\n  · 유튜브 채널 운영\n  · 인스타그램 운영\n  · 광고 운영\n  · 상품 촬영/콘텐츠\n\n📦 상품/생산\n  · 시즌 상품 기획\n  · DIY키트 라인업 확대\n  · 원자재/재고 관리\n  · 꽃/공예 레퍼런스\n\n🛒 채널/판매\n  · 웨딩기프트 런칭\n  · 홈페이지 리뉴얼\n  · 사방넷 세팅\n\n💬 고객/CS\n  · 쇼핑몰 CS 관리\n  · 플랫폼 리뷰 관리\n\n⚙️ 운영/관리\n  · n8n 자동화 구축\n  · 창고 정리\n\n📊 경영/성장\n  · 자기개발\n  · 운동\n  · 가계부\n  · 월간 매출 분석\n  · 경쟁사/트렌드 조사\n\n💡 등록 예시\n유튜브 - 영상편집 @오늘\n쇼핑몰 CS - 주문문의 @오늘",
         "additionalFields": {}
@@ -571,7 +774,10 @@
         [{ "node": "오늘 할 일 조회", "type": "main", "index": 0 }],
         [{ "node": "액션 분기", "type": "main", "index": 0 }],
         [{ "node": "밀린 업무 조회 (커맨드)", "type": "main", "index": 0 }],
-        [{ "node": "프로젝트 목록 회신", "type": "main", "index": 0 }]
+        [{ "node": "프로젝트 목록 회신", "type": "main", "index": 0 }],
+        [{ "node": "Callback 처리", "type": "main", "index": 0 }],
+        [{ "node": "이번 주 날짜 계산", "type": "main", "index": 0 }],
+        [{ "node": "수정 파싱", "type": "main", "index": 0 }]
       ]
     },
     "Gemini AI 파싱": { "main": [[{ "node": "Gemini 응답 파싱", "type": "main", "index": 0 }]] },
@@ -614,7 +820,21 @@
     "노션 상태 변경": { "main": [[{ "node": "처리결과 포맷", "type": "main", "index": 0 }]] },
     "처리결과 포맷": { "main": [[{ "node": "처리결과 회신", "type": "main", "index": 0 }]] },
     "밀린 업무 조회 (커맨드)": { "main": [[{ "node": "밀린 업무 포맷", "type": "main", "index": 0 }]] },
-    "밀린 업무 포맷": { "main": [[{ "node": "밀린 업무 회신", "type": "main", "index": 0 }]] }
+    "밀린 업무 포맷": { "main": [[{ "node": "밀린 업무 회신", "type": "main", "index": 0 }]] },
+    "Callback 처리": { "main": [[{ "node": "CallbackQuery 응답", "type": "main", "index": 0 }]] },
+    "CallbackQuery 응답": { "main": [[{ "node": "Notion 상태 변경 (Callback)", "type": "main", "index": 0 }]] },
+    "Notion 상태 변경 (Callback)": { "main": [[{ "node": "메시지 버튼 제거", "type": "main", "index": 0 }]] },
+    "이번 주 날짜 계산": { "main": [[{ "node": "이번 주 할 일 조회", "type": "main", "index": 0 }]] },
+    "이번 주 할 일 조회": { "main": [[{ "node": "주간 포맷", "type": "main", "index": 0 }]] },
+    "주간 포맷": { "main": [[{ "node": "주간 회신", "type": "main", "index": 0 }]] },
+    "수정 파싱": { "main": [[{ "node": "수정 유효?", "type": "main", "index": 0 }]] },
+    "수정 유효?": {
+      "main": [
+        [{ "node": "노션 수정 PATCH", "type": "main", "index": 0 }],
+        [{ "node": "수정 오류 회신", "type": "main", "index": 0 }]
+      ]
+    },
+    "노션 수정 PATCH": { "main": [[{ "node": "수정 완료 회신", "type": "main", "index": 0 }]] }
   },
   "settings": {
     "executionOrder": "v1",

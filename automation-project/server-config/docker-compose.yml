@@ -48,6 +48,9 @@ services:
       # AI 파싱
       GEMINI_API_KEY: ${GEMINI_API_KEY}
 
+      # 텔레그램 봇
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+
       # 프로덕션
       NODE_ENV: production
     ports:
