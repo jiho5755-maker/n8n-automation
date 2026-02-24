@@ -57,6 +57,82 @@
     {
       "parameters": {
         "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const now = new Date(); const kst = new Date(now.getTime() + 9*60*60*1000); const todayISO = kst.toISOString().split('T')[0]; const days=['일','월','화','수','목','금','토']; const dayName = days[kst.getUTCDay()]; const rawText = $('메시지 파싱').first().json.raw; const prompt = `오늘 날짜: ${todayISO}(${dayName}). 아래 메시지에서 업무 일정 정보를 JSON으로 추출하세요. 반드시 JSON 형식만 반환하세요.\\n\\n메시지: \"${rawText.replace(/\"/g, '\\\\\"')}\"\\n\\n출력 JSON 스키마:\\n{\\n  \"title\": \"할 일 제목 (필수)\",\\n  \"projectHint\": \"프로젝트명 힌트 (없으면 null)\",\\n  \"date\": \"YYYY-MM-DD (기본: 오늘)\",\\n  \"time\": \"HH:mm (시간 없으면 null)\",\\n  \"dueDate\": \"YYYY-MM-DD (목표날짜 없으면 null)\",\\n  \"memo\": \"메모 내용 (없으면 null)\"\\n}\\n\\n날짜 규칙:\\n- 내일: ${new Date(kst.getTime()+86400000).toISOString().split('T')[0]}\\n- 모레: ${new Date(kst.getTime()+172800000).toISOString().split('T')[0]}\\n- 다음주: ${new Date(kst.getTime()+604800000).toISOString().split('T')[0]}\\n- 요일(월~일)은 다음 해당 요일 날짜로 계산`; return JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json' } }); })() }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "node-gemini-call",
+      "name": "Gemini AI 파싱",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 60],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini 응답 파싱\ntry {\n  const response = $input.first().json;\n  \n  // HTTP 오류 또는 continueOnFail로 인한 오류 체크\n  if (response.error || !response.candidates) {\n    return [{ json: { aiSuccess: false, error: 'API 오류', ...($('메시지 파싱').first().json) } }];\n  }\n  \n  const textContent = response.candidates?.[0]?.content?.parts?.[0]?.text;\n  if (!textContent) {\n    return [{ json: { aiSuccess: false, error: '응답 없음', ...($('메시지 파싱').first().json) } }];\n  }\n  \n  const parsed = JSON.parse(textContent);\n  if (!parsed.title) {\n    return [{ json: { aiSuccess: false, error: 'title 없음', ...($('메시지 파싱').first().json) } }];\n  }\n  \n  return [{ json: { aiSuccess: true, aiResult: parsed, ...($('메시지 파싱').first().json) } }];\n} catch(e) {\n  return [{ json: { aiSuccess: false, error: e.message, ...($('메시지 파싱').first().json) } }];\n}"
+      },
+      "id": "node-gemini-parse",
+      "name": "Gemini 응답 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 60]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-ai-success",
+              "leftValue": "={{ $json.aiSuccess }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-ai-success",
+      "name": "AI 성공?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 60]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI 파싱 결과를 기존 프로젝트 검색이 기대하는 형식으로 변환\nconst base = $json;\nconst ai = base.aiResult;\n\nfunction formatDateLabel(date) {\n  const days = ['일','월','화','수','목','금','토'];\n  return `${date.getMonth()+1}/${date.getDate()}(${days[date.getDay()]})`;\n}\n\nconst dateObj = new Date(ai.date + 'T00:00:00+09:00');\nlet dateStart = ai.date;\nlet dateLabel = formatDateLabel(dateObj);\nlet timeLabel = null;\n\nif (ai.time) {\n  const [hh, mm] = ai.time.split(':');\n  dateStart = ai.date + 'T' + hh + ':' + mm + ':00+09:00';\n  const h = parseInt(hh);\n  const ampm = h < 12 ? '오전' : '오후';\n  const h12 = h % 12 || 12;\n  timeLabel = `${ampm}${h12}시${mm !== '00' ? mm+'분' : ''}`;\n  dateLabel = dateLabel + ' ' + timeLabel;\n}\n\nreturn [{\n  json: {\n    type: 'message',\n    project: ai.projectHint,\n    todo: ai.title,\n    dateISO: ai.date,\n    dateStart,\n    dateLabel,\n    dueISO: ai.dueDate || null,\n    dueLabel: ai.dueDate ? formatDateLabel(new Date(ai.dueDate + 'T00:00:00+09:00')) : null,\n    memo: ai.memo || '',\n    chatId: base.chatId,\n    raw: base.raw,\n    usedAI: true\n  }\n}];"
+      },
+      "id": "node-ai-to-parsed",
+      "name": "AI결과 변환",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -40]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI 실패 시 기존 Regex 파서로 폴백\n// 메시지 파싱 노드에서 이미 파싱된 결과를 그대로 활용\nconst prev = $('메시지 파싱').first().json;\n\n// 이미 node-parse에서 type:'message'로 파싱된 결과가 있으므로\n// 그대로 전달하되 usedAI: false 플래그만 추가\nreturn [{\n  json: {\n    type: prev.type,\n    project: prev.project,\n    todo: prev.todo,\n    dateISO: prev.dateISO,\n    dateStart: prev.dateStart,\n    dateLabel: prev.dateLabel,\n    dueISO: prev.dueISO,\n    dueLabel: prev.dueLabel,\n    memo: prev.memo,\n    chatId: prev.chatId,\n    raw: prev.raw,\n    usedAI: false\n  }\n}];"
+      },
+      "id": "node-ai-fallback",
+      "name": "AI 폴백 파서",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 160]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
         "url": "=https://api.notion.com/v1/databases/30bd119f-a669-81e2-a747-f9002c0a9910/query",
         "sendHeaders": true,
         "headerParameters": {
@@ -73,17 +149,17 @@
       "name": "프로젝트 검색",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 60]
+      "position": [1540, 60]
     },
     {
       "parameters": {
-        "jsCode": "// 프로젝트 매칭 결과 처리\nconst prev = $('메시지 파싱').first().json;\nconst results = $input.first().json.results || [];\n\nlet projectId = null;\nlet projectName = null;\n\nif (prev.project && results.length > 0) {\n  projectId = results[0].id;\n  const titleProp = results[0].properties['프로젝트'];\n  if (titleProp && titleProp.title && titleProp.title.length > 0) {\n    projectName = titleProp.title[0].plain_text;\n  }\n}\n\nreturn [{\n  json: {\n    ...prev,\n    projectId,\n    projectName: projectName || prev.project,\n    projectMatched: !!projectId\n  }\n}];"
+        "jsCode": "// 프로젝트 매칭 결과 처리\n// 프로젝트 검색 노드는 AI결과 변환 또는 AI 폴백 파서에서 전달된 데이터를 받음\n// 프로젝트 검색의 입력 데이터(project, todo 등)는 $('프로젝트 검색').item.json에 포함되지 않으므로\n// AI결과 변환 또는 AI 폴백 파서에서 가져와야 함\nconst results = $input.first().json.results || [];\n\n// 실행된 소스 노드에서 파싱 데이터 가져오기\nlet sourceData;\ntry {\n  sourceData = $('AI결과 변환').first().json;\n} catch(e) {\n  try {\n    sourceData = $('AI 폴백 파서').first().json;\n  } catch(e2) {\n    // 최종 폴백: 메시지 파싱 노드의 원본 데이터\n    sourceData = $('메시지 파싱').first().json;\n  }\n}\n\nlet projectId = null;\nlet projectName = null;\n\nif (sourceData.project && results.length > 0) {\n  projectId = results[0].id;\n  const titleProp = results[0].properties['프로젝트'];\n  if (titleProp && titleProp.title && titleProp.title.length > 0) {\n    projectName = titleProp.title[0].plain_text;\n  }\n}\n\nreturn [{\n  json: {\n    ...sourceData,\n    projectId,\n    projectName: projectName || sourceData.project,\n    projectMatched: !!projectId\n  }\n}];"
       },
       "id": "node-project-result",
       "name": "프로젝트 매칭 결과",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 60]
+      "position": [1760, 60]
     },
     {
       "parameters": {
@@ -104,7 +180,7 @@
       "name": "캘린더 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 60]
+      "position": [1980, 60]
     },
     {
       "parameters": {
@@ -114,7 +190,7 @@
       "name": "캘린더 확인",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 60]
+      "position": [2200, 60]
     },
     {
       "parameters": {
@@ -133,7 +209,7 @@
       "name": "캘린더 존재?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1540, 60]
+      "position": [2420, 60]
     },
     {
       "parameters": {
@@ -155,7 +231,7 @@
       "name": "캘린더 생성",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1760, 200]
+      "position": [2640, 200]
     },
     {
       "parameters": {
@@ -165,7 +241,7 @@
       "name": "캘린더 ID 통합",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1980, 60]
+      "position": [2860, 60]
     },
     {
       "parameters": {
@@ -187,17 +263,17 @@
       "name": "할 일 생성",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2200, 60]
+      "position": [3080, 60]
     },
     {
       "parameters": {
-        "jsCode": "// 확인 메시지 포맷팅\nconst prev = $('캘린더 ID 통합').first().json;\n\nlet msg = '✅ 할 일 등록 완료\\n━━━━━━━━━━━━━━━';\nmsg += `\\n📋 ${prev.todo}`;\nif (prev.projectMatched) {\n  msg += `\\n📁 ${prev.projectName}`;\n} else if (prev.project) {\n  msg += `\\n📁 ${prev.project} ⚠️ 미매칭`;\n} else {\n  // 프로젝트 없음 → 캘린더 미표시 안내\n  msg += `\\n📁 미지정 (캘린더 뷰 미표시)`;\n  msg += `\\n💡 캘린더에 표시하려면: 프로젝트 - 할 일 형식`;\n  msg += `\\n   예) 운동 - 농구 @오늘`;\n}\nmsg += `\\n📅 ${prev.dateLabel}`;\nif (prev.dueLabel) {\n  msg += `\\n🎯 목표: ${prev.dueLabel}`;\n}\nif (prev.memo) {\n  msg += `\\n📝 메모: ${prev.memo}`;\n}\n\nreturn [{ json: { chatId: prev.chatId, text: msg } }];"
+        "jsCode": "// 확인 메시지 포맷팅\nconst prev = $('캘린더 ID 통합').first().json;\n\nlet msg = '\\u2705 할 일 등록 완료\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501';\nmsg += `\\n\\ud83d\\udccb ${prev.todo}`;\nif (prev.projectMatched) {\n  msg += `\\n\\ud83d\\udcc1 ${prev.projectName}`;\n} else if (prev.project) {\n  msg += `\\n\\ud83d\\udcc1 ${prev.project} \\u26a0\\ufe0f \\ubbf8\\ub9e4\\uce6d`;\n} else {\n  msg += `\\n\\ud83d\\udcc1 \\ubbf8\\uc9c0\\uc815 (\\uce98\\ub9b0\\ub354 \\ubdf0 \\ubbf8\\ud45c\\uc2dc)`;\n  msg += `\\n\\ud83d\\udca1 \\uce98\\ub9b0\\ub354\\uc5d0 \\ud45c\\uc2dc\\ud558\\ub824\\uba74: \\ud504\\ub85c\\uc81d\\ud2b8 - \\ud560 \\uc77c \\ud615\\uc2dd`;\n  msg += `\\n   \\uc608) \\uc6b4\\ub3d9 - \\ub18d\\uad6c @\\uc624\\ub298`;\n}\nif (prev.usedAI === false) msg += '\\n\\u26a0\\ufe0f \\uae30\\ubcf8 \\ud30c\\uc11c \\uc0ac\\uc6a9';\nmsg += `\\n\\ud83d\\udcc5 ${prev.dateLabel}`;\nif (prev.dueLabel) {\n  msg += `\\n\\ud83c\\udfaf \\ubaa9\\ud45c: ${prev.dueLabel}`;\n}\nif (prev.memo) {\n  msg += `\\n\\ud83d\\udcdd \\uba54\\ubaa8: ${prev.memo}`;\n}\n\nreturn [{ json: { chatId: prev.chatId, text: msg } }];"
       },
       "id": "node-format-reply",
       "name": "확인 메시지 포맷",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 60]
+      "position": [3300, 60]
     },
     {
       "parameters": {
@@ -209,7 +285,7 @@
       "name": "확인 회신",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2640, 60],
+      "position": [3520, 60],
       "credentials": {
         "telegramApi": {
           "id": "1",
@@ -434,7 +510,7 @@
     {
       "parameters": {
         "chatId": "={{ $json.chatId }}",
-        "text": "=📖 사용법 안내\n━━━━━━━━━━━━━━━\n\n📋 할 일 등록\n  [프로젝트 - ]할 일 [@날짜 [시간]] [~목표날짜] [#메모]\n\n  예시:\n  · 운동 @오늘\n  · 팀 미팅 @오늘 14:00\n  · 유튜브 - 영상편집 @내일 오전9시 ~다음주\n  · 홈페이지 - 배너수정 @월\n\n📅 날짜 키워드\n  오늘 내일 모레 다음주\n  월화수목금토일, M/D\n\n⏰ 시간 형식\n  14:00  9:30  오전10시  오후3시30분\n\n🔧 커맨드\n  /목록        오늘 할 일 보기\n  /완료 1      1번 항목 완료\n  /상태 1 진행중  상태 변경\n  /밀린        기한 지난 업무\n  /프로젝트    프로젝트 목록 보기\n  /도움말      이 메시지",
+        "text": "=📖 사용법 안내\n━━━━━━━━━━━━━━━\n\n📋 할 일 등록\n  [프로젝트 - ]할 일 [@날짜 [시간]] [~목표날짜] [#메모]\n\n  예시:\n  · 운동 @오늘\n  · 팀 미팅 @오늘 14:00\n  · 유튜브 - 영상편집 @내일 오전9시 ~다음주\n  · 홈페이지 - 배너수정 @월\n\n  🤖 AI 자연어도 지원!\n  · 내일 오후 3시에 팀 미팅\n  · 다음주 금요일까지 보고서 작성\n\n📅 날짜 키워드\n  오늘 내일 모레 다음주\n  월화수목금토일, M/D\n\n⏰ 시간 형식\n  14:00  9:30  오전10시  오후3시30분\n\n🔧 커맨드\n  /목록        오늘 할 일 보기\n  /완료 1      1번 항목 완료\n  /상태 1 진행중  상태 변경\n  /밀린        기한 지난 업무\n  /프로젝트    프로젝트 목록 보기\n  /도움말      이 메시지",
         "additionalFields": {}
       },
       "id": "node-reply-help",
@@ -491,13 +567,23 @@
     "메시지 파싱": { "main": [[{ "node": "커맨드 라우터", "type": "main", "index": 0 }]] },
     "커맨드 라우터": {
       "main": [
-        [{ "node": "프로젝트 검색", "type": "main", "index": 0 }],
+        [{ "node": "Gemini AI 파싱", "type": "main", "index": 0 }],
         [{ "node": "오늘 할 일 조회", "type": "main", "index": 0 }],
         [{ "node": "액션 분기", "type": "main", "index": 0 }],
         [{ "node": "밀린 업무 조회 (커맨드)", "type": "main", "index": 0 }],
         [{ "node": "프로젝트 목록 회신", "type": "main", "index": 0 }]
       ]
     },
+    "Gemini AI 파싱": { "main": [[{ "node": "Gemini 응답 파싱", "type": "main", "index": 0 }]] },
+    "Gemini 응답 파싱": { "main": [[{ "node": "AI 성공?", "type": "main", "index": 0 }]] },
+    "AI 성공?": {
+      "main": [
+        [{ "node": "AI결과 변환", "type": "main", "index": 0 }],
+        [{ "node": "AI 폴백 파서", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI결과 변환": { "main": [[{ "node": "프로젝트 검색", "type": "main", "index": 0 }]] },
+    "AI 폴백 파서": { "main": [[{ "node": "프로젝트 검색", "type": "main", "index": 0 }]] },
     "프로젝트 검색": { "main": [[{ "node": "프로젝트 매칭 결과", "type": "main", "index": 0 }]] },
     "프로젝트 매칭 결과": { "main": [[{ "node": "캘린더 조회", "type": "main", "index": 0 }]] },
     "캘린더 조회": { "main": [[{ "node": "캘린더 확인", "type": "main", "index": 0 }]] },

@@ -205,7 +205,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const d = $json; const props = { '할 일': { title: [{ text: { content: d.todo } }] }, '상태': { status: { name: '시작 전' } }, '시간 ': { date: { start: d.dateISO } } }; if (d.projectId) { props['프로젝트'] = { relation: [{ id: d.projectId }] }; } if (d.calendarId) { props['캘린더'] = { relation: [{ id: d.calendarId }] }; } return JSON.stringify({ parent: { database_id: '30bd119f-a669-81d0-8730-d824b7bc948c' }, properties: props }); })() }}"
+        "jsonBody": "={{ (() => { const d = $json; const props = { '할 일': { title: [{ text: { content: d.todo } }] }, '상태': { status: { name: '시작 전' } }, '시간 ': { date: { start: d.dateISO } } }; props['메모'] = { rich_text: [{ text: { content: '[from-gcal]' } }] }; if (d.projectId) { props['프로젝트'] = { relation: [{ id: d.projectId }] }; } if (d.calendarId) { props['캘린더'] = { relation: [{ id: d.calendarId }] }; } return JSON.stringify({ parent: { database_id: '30bd119f-a669-81d0-8730-d824b7bc948c' }, properties: props }); })() }}"
       },
       "id": "node-create-todo",
       "name": "할 일 생성",

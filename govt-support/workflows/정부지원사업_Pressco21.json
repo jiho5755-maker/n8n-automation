@@ -198,8 +198,8 @@
       "waitBetweenTries": 5000,
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CRED_ID",
-          "name": "Telegram"
+          "id": "1",
+          "name": "Telegram Bot API"
         }
       }
     },
@@ -249,8 +249,8 @@
       "webhookId": "94d87e42-e0bf-41d8-9a0f-53a0b224c73c",
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CRED_ID",
-          "name": "Telegram"
+          "id": "1",
+          "name": "Telegram Bot API"
         }
       }
     },
@@ -655,9 +655,9 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "models/gemini-2.0-flash",
+          "value": "models/gemini-2.5-flash",
           "mode": "list",
-          "cachedResultName": "models/gemini-2.0-flash"
+          "cachedResultName": "models/gemini-2.5-flash"
         },
         "messages": {
           "values": [
@@ -680,11 +680,17 @@
         416
       ],
       "id": "7e074d2e-1e4c-45b3-8d84-fe6e2ac4ce31",
-      "name": "gemini 분석1"
+      "name": "gemini 분석1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qC5YRvdMTRVPbAmQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "// Gemini 응답 파싱 (Run Once for All Items 대응: 입력 N개 → 출력 N개)\n// + _action/_airtableRecordId/게시일시_raw/게시일시_source/수정일시_raw 등 메타 유지\n\nconst responses = $input.all();\n\n// 원본(공고 데이터) 가져오기\nlet promptItems = [];\ntry {\n  promptItems = $('프롬프트 있는것만1').all();\n} catch (e) {\n  try {\n    promptItems = $('Gemini 프롬프트 생성').all();\n  } catch (e2) {\n    promptItems = [];\n  }\n}\n\nfunction extractText(response) {\n  if (!response) return '';\n  if (response.candidates?.[0]?.content?.parts?.[0]?.text) return response.candidates[0].content.parts[0].text;\n  if (response.content?.parts?.[0]?.text) return response.content.parts[0].text;\n  if (response.parts?.[0]?.text) return response.parts[0].text;\n  if (typeof response.text === 'string') return response.text;\n  if (typeof response === 'string') return response;\n  return '';\n}\n\nfunction parseAnalysis(text) {\n  const fallback = {\n    관련도점수: 0,\n    관련도등급: '저관련',\n    적합이유: '분석 실패',\n    신청팁: ''\n  };\n\n  if (!text) return fallback;\n\n  try {\n    const codeBlock = text.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    let jsonStr = codeBlock ? codeBlock[1] : '';\n\n    if (!jsonStr) {\n      const obj = text.match(/\\{[\\s\\S]*\\}/);\n      if (obj) jsonStr = obj[0];\n    }\n\n    if (!jsonStr) return fallback;\n\n    const parsed = JSON.parse(jsonStr.trim());\n    return { ...fallback, ...parsed };\n  } catch (e) {\n    return fallback;\n  }\n}\n\nreturn responses.map((item, idx) => {\n  const prevData = promptItems[idx]?.json ?? {};\n  const response = item.json;\n\n  const text = extractText(response);\n  const analysis = parseAnalysis(text);\n\n  const scoreRaw = Number(analysis.관련도점수);\n  const score = Number.isFinite(scoreRaw) ? Math.max(0, Math.min(100, scoreRaw)) : 0;\n\n  let grade = analysis.관련도등급;\n  grade = score >= 70 ? '고관련' : score >= 30 ? '검토' : '저관련';\n\n  // ✅ 메타 유지\n  const metaAction = prevData._action ?? item.json?._action ?? 'create';\n  const metaRecordId = prevData._airtableRecordId ?? item.json?._airtableRecordId ?? null;\n\n  return {\n    json: {\n      // 원본 공고 필드\n      공고ID: prevData.공고ID || item.json.공고ID || '',\n      지원사업이름: prevData.지원사업이름 || item.json.지원사업이름 || '',\n      소관기관: prevData.소관기관 || '',\n      수행기관: prevData.수행기관 || '',\n      지원분야: prevData.지원분야 || '',\n      지원대상: prevData.지원대상 || '',\n      사업개요: prevData.사업개요 || '',\n      지역: prevData.지역 || '',\n      신청시작일: prevData.신청시작일 || null,\n      마감일: prevData.마감일 || null,\n      신청방법: prevData.신청방법 || '',\n      신청Link: prevData.신청Link || '',\n      지원금액: prevData.지원금액 || '',\n      수집출처: prevData.수집출처 || '',\n\n      // ✅ 게시/수정 메타(업데이트 감지/저장용)\n      게시일시_raw: prevData.게시일시_raw || null,\n      게시일시_source: prevData.게시일시_source || '',\n      수정일시_raw: prevData.수정일시_raw || null,\n\n      // 분석 결과\n      관련도점수: score,\n      관련도등급: grade,\n      AI분석: `${analysis.적합이유 || '분석 실패'}\\n\\n💡 신청팁: ${analysis.신청팁 || ''}`,\n\n      // ✅ 저장 동작 메타\n      _action: metaAction,\n      _airtableRecordId: metaRecordId\n    }\n  };\n});"
+        "jsCode": "// Gemini 응답 파싱 (Run Once for All Items 대응: 입력 N개 → 출력 N개)\n// + _action/_airtableRecordId/게시일시_raw/게시일시_source/수정일시_raw 등 메타 유지\n\nconst responses = $input.all();\n\n// 원본(공고 데이터) 가져오기\nlet promptItems = [];\ntry {\n  promptItems = $('프롬프트 있는것만1').all();\n} catch (e) {\n  try {\n    promptItems = $('Gemini 프롬프트 생성').all();\n  } catch (e2) {\n    promptItems = [];\n  }\n}\n\nfunction extractText(response) {\n  if (!response) return '';\n  if (response.candidates?.[0]?.content?.parts?.[0]?.text) return response.candidates[0].content.parts[0].text;\n  if (response.content?.parts?.[0]?.text) return response.content.parts[0].text;\n  if (response.parts?.[0]?.text) return response.parts[0].text;\n  if (typeof response.text === 'string') return response.text;\n  if (typeof response === 'string') return response;\n  return '';\n}\n\nfunction parseAnalysis(text) {\n  const fallback = {\n    관련도점수: 0,\n    관련도등급: '저관련',\n    적합이유: '분석 실패',\n    신청팁: ''\n  };\n\n  if (!text) return fallback;\n\n  try {\n    const codeBlock = text.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n    let jsonStr = codeBlock ? codeBlock[1] : '';\n\n    if (!jsonStr) {\n      const obj = text.match(/\\{[\\s\\S]*\\}/);\n      if (obj) jsonStr = obj[0];\n    }\n\n    if (!jsonStr) return fallback;\n\n    const parsed = JSON.parse(jsonStr.trim());\n    return { ...fallback, ...parsed };\n  } catch (e) {\n    return fallback;\n  }\n}\n\nreturn responses.map((item, idx) => {\n  const prevData = promptItems[idx]?.json ?? {};\n  const response = item.json;\n\n  const text = extractText(response);\n  const analysis = parseAnalysis(text);\n\n  const scoreRaw = Number(analysis.관련도점수);\n  const score = Number.isFinite(scoreRaw) ? Math.max(0, Math.min(100, scoreRaw)) : 0;\n\n  let grade = analysis.관련도등급;\n  grade = score >= 70 ? '고관련' : score >= 30 ? '검토' : '저관련';\n\n  // ✅ 메타 유지\n  const metaAction = prevData._action ?? item.json?._action ?? 'create';\n  const metaRecordId = prevData._airtableRecordId ?? item.json?._airtableRecordId ?? null;\n\n  return {\n    json: {\n      // 원본 공고 필드\n      공고ID: prevData.공고ID || item.json.공고ID || '',\n      지원사업이름: prevData.지원사업이름 || item.json.지원사업이름 || '',\n      소관기관: prevData.소관기관 || '',\n      수행기관: prevData.수행기관 || '',\n      지원분야: prevData.지원분야 || '',\n      지원대상: prevData.지원대상 || '',\n      사업개요: prevData.사업개요 || '',\n      지역: prevData.지역 || '',\n      신청시작일: prevData.신청시작일 || null,\n      마감일: prevData.마감일 || null,\n      신청방법: prevData.신청방법 || '',\n      신청Link: prevData.신청Link || '',\n      지원금액: prevData.지원금액 || '',\n      수집출처: prevData.수집출처 || '',\n\n      // ✅ 게시/수정 메타(업데이트 감지/저장용)\n      게시일시_raw: prevData.게시일시_raw || null,\n      게시일시_source: prevData.게시일시_source || '',\n      수정일시_raw: prevData.수정일시_raw || null,\n\n      // 분석 결과\n      관련도점수: score,\n      관련도등급: grade,\n      AI분석: `${analysis.적합이유 || '분석 실패'}\\n\\n💡 신청팁: ${analysis.신청팁 || ''}`,\n      hashtags: analysis.hashtags || '',\n\n      // ✅ 저장 동작 메타\n      _action: metaAction,\n      _airtableRecordId: metaRecordId\n    }\n  };\n});"
       },
       "id": "1fde2dcd-379b-4d33-817a-b5c4474480b0",
       "name": "Gemini 응답 파싱",
@@ -836,7 +842,9 @@
             "상태": "데이터 수집",
             "지원대상": "={{ $json['지원대상'] }}",
             "\b세부 내용": "={{ $json['사업개요'] }}",
-            "지원금액": "={{ $json['지원금액'] }}"
+            "지원금액": "={{ $json['지원금액'] }}",
+            "hashtags": "={{ $json['hashtags'] || '' }}",
+            "자동화 LOG": "={{ '[' + $now.format('yyyy-MM-dd HH:mm') + '] ' + ($json._action === 'update' ? '업데이트' : '신규수집') + ' | ' + ($json['수집출처'] || '미상') + ' | ' + ($json['관련도점수'] != null ? $json['관련도점수'] + '점' : '') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1551,7 +1559,9 @@
             "지원금액": "={{ $json['지원금액'] }}",
             "게시일시_source": "={{ $json['게시일시_source'] }}",
             "게시일시_raw": "={{ $json['게시일시_raw'] }}",
-            "수정일시_raw": "={{ $json['수정일시_raw'] }}"
+            "수정일시_raw": "={{ $json['수정일시_raw'] }}",
+            "hashtags": "={{ $json['hashtags'] || '' }}",
+            "자동화 LOG": "={{ '[' + $now.format('yyyy-MM-dd HH:mm') + '] ' + ($json._action === 'update' ? '업데이트' : '신규수집') + ' | ' + ($json['수집출처'] || '미상') + ' | ' + ($json['관련도점수'] != null ? $json['관련도점수'] + '점' : '') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -2304,7 +2314,9 @@
             "id": "={{ $('중복제거 & 신규필터1').item.json._airtableRecordId }}",
             "게시일시_raw": "={{ $('중복제거 & 신규필터1').item.json['게시일시_raw'] }}",
             "게시일시_source": "={{ $('중복제거 & 신규필터1').item.json['게시일시_source'] }}",
-            "수정일시_raw": "={{ $('중복제거 & 신규필터1').item.json['수정일시_raw'] }}"
+            "수정일시_raw": "={{ $('중복제거 & 신규필터1').item.json['수정일시_raw'] }}",
+            "hashtags": "={{ $json['hashtags'] || '' }}",
+            "자동화 LOG": "={{ '[' + $now.format('yyyy-MM-dd HH:mm') + '] ' + ($json._action === 'update' ? '업데이트' : '신규수집') + ' | ' + ($json['수집출처'] || '미상') + ' | ' + ($json['관련도점수'] != null ? $json['관련도점수'] + '점' : '') }}"
           },
           "matchingColumns": [
             "id"
@@ -3069,7 +3081,9 @@
             "id": "{{ $('중복제거 & 신규필터1').item.json._airtableRecordId }}",
             "게시일시_raw": "={{ $('중복제거 & 신규필터1').item.json['게시일시_raw'] }}",
             "게시일시_source": "={{ $('중복제거 & 신규필터1').item.json['게시일시_source'] }}",
-            "수정일시_raw": "={{ $('중복제거 & 신규필터1').item.json['수정일시_raw'] }}"
+            "수정일시_raw": "={{ $('중복제거 & 신규필터1').item.json['수정일시_raw'] }}",
+            "hashtags": "={{ $json['hashtags'] || '' }}",
+            "자동화 LOG": "={{ '[' + $now.format('yyyy-MM-dd HH:mm') + '] ' + ($json._action === 'update' ? '업데이트' : '신규수집') + ' | ' + ($json['수집출처'] || '미상') + ' | ' + ($json['관련도점수'] != null ? $json['관련도점수'] + '점' : '') }}"
           },
           "matchingColumns": [
             "id"
