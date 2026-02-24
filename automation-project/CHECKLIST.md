@@ -103,23 +103,28 @@
 ## Phase 3: 구글 캘린더 + 자동 알림
 
 ### 3-1. Google OAuth 설정
-- [ ] Google Cloud Console → 프로젝트 생성
-- [ ] Google Calendar API 활성화
-- [ ] OAuth 동의 화면 설정 (외부, 테스트 모드)
-- [ ] OAuth 클라이언트 ID 생성 (웹 애플리케이션)
-- [ ] Redirect URI: https://n8n.내도메인.com/rest/oauth2-credential/callback
-- [ ] Client ID / Secret 메모
+- [x] https://console.cloud.google.com 접속 → 프로젝트 생성 (예: `n8n-automation`)
+- [x] 좌측 메뉴 → API 및 서비스 → 라이브러리 → **Google Calendar API** 검색 후 활성화
+- [x] OAuth 동의 화면 설정 (외부/External, 테스트 모드)
+  - 앱 이름: `n8n Automation`, 사용자 지원 이메일: jiho5755@gmail.com
+  - 테스트 사용자: jiho5755@gmail.com 추가
+- [x] 사용자 인증 정보 만들기 → OAuth 클라이언트 ID → 웹 애플리케이션
+  - 승인된 리디렉션 URI: `https://n8n.pressco21.com/rest/oauth2-credential/callback`
+- [x] Client ID / Client Secret 메모 (프로젝트 ID: fabled-tractor-483815-q9)
 
 ### 3-2. n8n Google Calendar Credential
-- [ ] n8n → Credentials → Google Calendar OAuth2 추가
-- [ ] Client ID, Secret 입력
-- [ ] OAuth 인증 완료
+- [x] https://n8n.pressco21.com → 좌측 메뉴 → Credentials → Add Credential
+- [x] `Google Calendar OAuth2 API` 선택 → "Google Calendar account" 생성
+- [x] Client ID, Client Secret 입력
+- [x] **Sign in with Google** 버튼 클릭 → jiho5755@gmail.com 로그인 → 권한 허용
+- [x] Account connected 확인 (2026-02-24)
 
 ### 3-3. 워크플로우: 구글 캘린더 → 노션
-- [ ] [F2] Google Calendar Trigger 워크플로우 구현
-- [ ] 일정 제목 파싱
-- [ ] 노션 할 일 자동 생성
-- [ ] 중복 방지 로직
+- [x] [F2] Google Calendar Trigger 워크플로우 작성 (`workflows/google-calendar-todo.json`)
+- [x] 일정 제목 파싱 (형식: `프로젝트 - 할 일`)
+- [x] 노션 할 일 자동 생성 + `시간 ` 날짜 필드 연결
+- [x] 중복 방지 로직 (같은 제목+날짜 체크)
+- [x] n8n에 Import + 자격증명 연결 (Google Calendar account / Telegram Bot API) + Published (2026-02-24)
 
 ### 3-4. 워크플로우: 모닝 브리핑
 - [x] [F3] Schedule Trigger (08:00) 워크플로우 구현 (`workflows/morning-briefing.json`)
@@ -133,6 +138,6 @@
 - [x] 텔레그램 발송
 
 ### 3-6. 통합 테스트
-- [ ] 모든 워크플로우 동시 활성화
+- [x] 모든 워크플로우 활성화 (F1/F2/F3/F4 Published, 2026-02-24)
 - [ ] 24시간 모니터링
 - [ ] **Phase 3 완료 → 시스템 운영 시작**

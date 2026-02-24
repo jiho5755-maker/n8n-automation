@@ -7,20 +7,20 @@
         "additionalFields": {}
       },
       "id": "node-trigger",
-      "name": "Telegram Trigger",
+      "name": "TelegramBot",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
       "position": [0, 300],
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CREDENTIAL_ID",
+          "id": "1",
           "name": "Telegram Bot"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// ===== 메시지 파싱 + 커맨드 라우팅 =====\n\nconst message = $input.first().json.message;\nconst text = (message.text || '').trim();\nconst chatId = message.chat.id;\n\n// --- 커맨드 체크 ---\nif (text.startsWith('/')) {\n  const parts = text.split(' ');\n  const cmd = parts[0].replace('@' + (message.bot?.username || ''), '');\n  const args = parts.slice(1).join(' ').trim();\n  return [{ json: { type: 'command', command: cmd, args, chatId } }];\n}\n\n// --- 날짜 파싱 헬퍼 ---\nfunction addDays(date, days) {\n  const r = new Date(date); r.setDate(r.getDate() + days); return r;\n}\nfunction formatDateLabel(date) {\n  const days = ['일','월','화','수','목','금','토'];\n  return `${date.getMonth()+1}/${date.getDate()}(${days[date.getDay()]})`;\n}\nfunction formatDateISO(date) {\n  const y = date.getFullYear();\n  const m = String(date.getMonth()+1).padStart(2,'0');\n  const d = String(date.getDate()).padStart(2,'0');\n  return `${y}-${m}-${d}`;\n}\nfunction parseDateKeyword(keyword) {\n  const now = new Date();\n  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());\n  if (!keyword) return { date: today, label: formatDateLabel(today) };\n  const clean = keyword.replace('@','').trim();\n  if (clean === '오늘') return { date: today, label: formatDateLabel(today) };\n  if (clean === '내일') { const d = addDays(today,1); return { date: d, label: formatDateLabel(d) }; }\n  if (clean === '모레') { const d = addDays(today,2); return { date: d, label: formatDateLabel(d) }; }\n  if (clean === '다음주') { const d = addDays(today,7); return { date: d, label: formatDateLabel(d) }; }\n  const dayMap = {'월':1,'화':2,'수':3,'목':4,'금':5,'토':6,'일':0};\n  if (dayMap[clean] !== undefined) {\n    let diff = dayMap[clean] - today.getDay();\n    if (diff <= 0) diff += 7;\n    const d = addDays(today, diff);\n    return { date: d, label: formatDateLabel(d) };\n  }\n  const m = clean.match(/^(\\d{1,2})\\/(\\d{1,2})$/);\n  if (m) {\n    let d = new Date(today.getFullYear(), parseInt(m[1],10)-1, parseInt(m[2],10));\n    if (d < today) d.setFullYear(d.getFullYear()+1);\n    return { date: d, label: formatDateLabel(d) };\n  }\n  return { date: today, label: formatDateLabel(today) };\n}\n\n// --- 메시지 파싱 ---\nconst dateRegex = /@(\\S+)\\s*$/;\nconst dateMatch = text.match(dateRegex);\nlet dateKeyword = dateMatch ? dateMatch[0] : null;\nlet textBody = dateMatch ? text.replace(dateRegex, '').trim() : text;\n\nlet project = null;\nlet todo = textBody;\nconst sepIdx = textBody.indexOf(' - ');\nif (sepIdx !== -1) {\n  project = textBody.substring(0, sepIdx).trim();\n  todo = textBody.substring(sepIdx + 3).trim();\n}\n\nconst parsed = parseDateKeyword(dateKeyword);\n\nreturn [{\n  json: {\n    type: 'message',\n    project,\n    todo,\n    dateISO: formatDateISO(parsed.date),\n    dateLabel: parsed.label,\n    chatId,\n    raw: text\n  }\n}];"
+        "jsCode": "// ===== 메시지 파싱 + 커맨드 라우팅 =====\n// 입력 형식:\n//   할 일 등록:  '[프로젝트 - ]할 일 [@날짜] [~목표날짜] [#메모]'\n//   날짜 키워드: 오늘, 내일, 모레, 다음주, 월~일, M/D\n//   시간 형식:   14:00, 9:30, 오전10시, 오후3시30분\n//   커맨드:     /목록, /완료 [번호], /상태 [번호] [상태명], /밀린, /도움말\n\nconst message = $input.first().json.message;\nconst text = (message.text || '').trim();\nconst chatId = message.chat.id;\n\n// --- 날짜 파싱 헬퍼 ---\nfunction addDays(date, days) {\n  const r = new Date(date); r.setDate(r.getDate() + days); return r;\n}\nfunction formatDateLabel(date) {\n  const days = ['일','월','화','수','목','금','토'];\n  return `${date.getMonth()+1}/${date.getDate()}(${days[date.getDay()]})`;\n}\nfunction formatDateISO(date) {\n  const y = date.getFullYear();\n  const m = String(date.getMonth()+1).padStart(2,'0');\n  const d = String(date.getDate()).padStart(2,'0');\n  return `${y}-${m}-${d}`;\n}\nfunction parseDateKeyword(keyword) {\n  const now = new Date();\n  // n8n 서버가 UTC이므로 KST(+9) 기준 오늘 날짜 계산\n  const kst = new Date(now.getTime() + 9*60*60*1000);\n  const today = new Date(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate());\n  if (!keyword) return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n  const clean = keyword.replace(/^[@~]/, '').trim();\n  if (clean === '오늘') return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n  if (clean === '내일') { const d = addDays(today,1); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  if (clean === '모레') { const d = addDays(today,2); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  if (clean === '다음주') { const d = addDays(today,7); return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) }; }\n  const dayMap = {'월':1,'화':2,'수':3,'목':4,'금':5,'토':6,'일':0};\n  if (dayMap[clean] !== undefined) {\n    let diff = dayMap[clean] - today.getDay();\n    if (diff <= 0) diff += 7;\n    const d = addDays(today, diff);\n    return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) };\n  }\n  const m = clean.match(/^(\\d{1,2})\\/(\\d{1,2})$/);\n  if (m) {\n    let d = new Date(today.getFullYear(), parseInt(m[1],10)-1, parseInt(m[2],10));\n    if (d < today) d.setFullYear(d.getFullYear()+1);\n    return { date: d, label: formatDateLabel(d), iso: formatDateISO(d) };\n  }\n  return { date: today, label: formatDateLabel(today), iso: formatDateISO(today) };\n}\n\n// --- 시간 파싱 헬퍼 ---\nfunction parseTimeStr(s) {\n  if (!s) return null;\n  const clean = s.trim();\n  // 오전/오후 한국어 형식: 오전10시, 오후3시30분\n  const korMatch = clean.match(/^(오전|오후)\\s*(\\d{1,2})시(?:(\\d{1,2})분)?$/);\n  if (korMatch) {\n    let hour = parseInt(korMatch[2], 10);\n    const minute = korMatch[3] ? parseInt(korMatch[3], 10) : 0;\n    if (korMatch[1] === '오후' && hour < 12) hour += 12;\n    if (korMatch[1] === '오전' && hour === 12) hour = 0;\n    const lbl = korMatch[1] + korMatch[2] + '시' + (korMatch[3] ? korMatch[3] + '분' : '');\n    return { hour, minute, label: lbl };\n  }\n  // 숫자:분 형식: 14:00, 9:30\n  const numMatch = clean.match(/^(\\d{1,2}):(\\d{2})$/);\n  if (numMatch) {\n    const hour = parseInt(numMatch[1], 10);\n    const minute = parseInt(numMatch[2], 10);\n    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {\n      const ampm = hour < 12 ? '오전' : '오후';\n      const h12 = hour % 12 || 12;\n      const lbl = ampm + h12 + '시' + (minute > 0 ? minute + '분' : '');\n      return { hour, minute, label: lbl };\n    }\n  }\n  return null;\n}\n\n// --- 커맨드 체크 ---\nif (text.startsWith('/')) {\n  const parts = text.trim().split(/\\s+/);\n  const cmd = parts[0].split('@')[0]; // @봇이름 제거\n  const args = parts.slice(1);\n  return [{ json: { type: 'command', command: cmd, args, chatId, raw: text } }];\n}\n\n// --- 일반 메시지 파싱 ---\n// @날짜 [시간], ~목표날짜, #메모 추출\nconst atMatch = text.match(/@(\\S+)(?:\\s+((?:오전|오후)\\s*\\d{1,2}시(?:\\d{1,2}분)?|\\d{1,2}:\\d{2}))?/);\nconst tildeMatch = text.match(/~(\\S+)/);\nconst hashMatch = text.match(/#(.+?)(?=[@~#]|$)/);\n\nconst dateKeyword = atMatch ? atMatch[1] : null;\nconst rawTimeStr = atMatch ? atMatch[2] : null;\nconst dueKeyword = tildeMatch ? tildeMatch[1] : null;\nconst memo = hashMatch ? hashMatch[1].trim() : '';\n\n// 특수 토큰 제거 후 본문 추출\nlet textBody = text\n  .replace(/@\\S+(?:\\s+(?:(?:오전|오후)\\s*\\d{1,2}시(?:\\d{1,2}분)?|\\d{1,2}:\\d{2}))?/g, '')\n  .replace(/~\\S+/g, '')\n  .replace(/#.*/g, '')\n  .trim();\n\n// 프로젝트 - 할 일 분리\nlet project = null;\nlet todo = textBody;\nconst sepIdx = textBody.indexOf(' - ');\nif (sepIdx !== -1) {\n  project = textBody.substring(0, sepIdx).trim();\n  todo = textBody.substring(sepIdx + 3).trim();\n}\n\nconst parsed = parseDateKeyword(dateKeyword);\nconst dueParsed = dueKeyword ? parseDateKeyword(dueKeyword) : null;\nconst timeParsed = parseTimeStr(rawTimeStr);\n\n// dateStart: 시간 포함 시 datetime ISO(KST), 아니면 date만\nlet dateStart = parsed.iso;\nlet timeLabel = null;\nif (timeParsed) {\n  const hh = String(timeParsed.hour).padStart(2, '0');\n  const mm = String(timeParsed.minute).padStart(2, '0');\n  dateStart = parsed.iso + 'T' + hh + ':' + mm + ':00+09:00';\n  timeLabel = timeParsed.label;\n}\n\nconst dateLabel = parsed.label + (timeLabel ? ' ' + timeLabel : '');\n\nreturn [{\n  json: {\n    type: 'message',\n    project,\n    todo,\n    dateISO: parsed.iso,\n    dateStart,\n    dateLabel,\n    dueISO: dueParsed ? dueParsed.iso : null,\n    dueLabel: dueParsed ? dueParsed.label : null,\n    memo,\n    chatId,\n    raw: text\n  }\n}];"
       },
       "id": "node-parse",
       "name": "메시지 파싱",
@@ -30,24 +30,30 @@
     },
     {
       "parameters": {
+        "mode": "rules",
+        "dataType": "string",
+        "value1": "={{ $json.type === 'command' ? $json.command : 'message' }}",
         "rules": {
           "rules": [
-            { "outputIndex": 0, "value": "message" },
-            { "outputIndex": 1, "value": "/목록" },
-            { "outputIndex": 1, "value": "/list" },
-            { "outputIndex": 2, "value": "/완료" },
-            { "outputIndex": 3, "value": "/밀린" }
+            { "operation": "equal", "value2": "message", "output": 0 },
+            { "operation": "equal", "value2": "/목록", "output": 1 },
+            { "operation": "equal", "value2": "/list", "output": 1 },
+            { "operation": "equal", "value2": "/완료", "output": 2 },
+            { "operation": "equal", "value2": "/상태", "output": 2 },
+            { "operation": "equal", "value2": "/도움말", "output": 2 },
+            { "operation": "equal", "value2": "/help", "output": 2 },
+            { "operation": "equal", "value2": "/밀린", "output": 3 },
+            { "operation": "equal", "value2": "/프로젝트", "output": 4 }
           ]
-        },
-        "dataType": "string",
-        "value1": "={{ $json.type === 'command' ? $json.command : 'message' }}"
+        }
       },
       "id": "node-switch",
       "name": "커맨드 라우터",
       "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
+      "typeVersion": 1,
       "position": [440, 300]
     },
+
     {
       "parameters": {
         "method": "POST",
@@ -55,7 +61,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Notion-Version", "value": "2022-06-28" }
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
           ]
         },
         "sendBody": true,
@@ -66,23 +73,17 @@
       "name": "프로젝트 검색",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 160],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "NOTION_HEADER_AUTH_ID",
-          "name": "Notion API"
-        }
-      }
+      "position": [660, 60]
     },
     {
       "parameters": {
-        "jsCode": "// 프로젝트 매칭 결과 처리 + 캘린더 조회 준비\nconst prev = $('메시지 파싱').first().json;\nconst results = $input.first().json.results || [];\n\nlet projectId = null;\nlet projectName = null;\n\nif (prev.project && results.length > 0) {\n  projectId = results[0].id;\n  const titleProp = results[0].properties['프로젝트'];\n  if (titleProp && titleProp.title && titleProp.title.length > 0) {\n    projectName = titleProp.title[0].plain_text;\n  }\n}\n\nreturn [{\n  json: {\n    ...prev,\n    projectId,\n    projectName: projectName || prev.project,\n    projectMatched: !!projectId\n  }\n}];"
+        "jsCode": "// 프로젝트 매칭 결과 처리\nconst prev = $('메시지 파싱').first().json;\nconst results = $input.first().json.results || [];\n\nlet projectId = null;\nlet projectName = null;\n\nif (prev.project && results.length > 0) {\n  projectId = results[0].id;\n  const titleProp = results[0].properties['프로젝트'];\n  if (titleProp && titleProp.title && titleProp.title.length > 0) {\n    projectName = titleProp.title[0].plain_text;\n  }\n}\n\nreturn [{\n  json: {\n    ...prev,\n    projectId,\n    projectName: projectName || prev.project,\n    projectMatched: !!projectId\n  }\n}];"
       },
       "id": "node-project-result",
       "name": "프로젝트 매칭 결과",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 160]
+      "position": [880, 60]
     },
     {
       "parameters": {
@@ -91,7 +92,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Notion-Version", "value": "2022-06-28" }
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
           ]
         },
         "sendBody": true,
@@ -102,13 +104,7 @@
       "name": "캘린더 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 160],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "NOTION_HEADER_AUTH_ID",
-          "name": "Notion API"
-        }
-      }
+      "position": [1100, 60]
     },
     {
       "parameters": {
@@ -118,7 +114,7 @@
       "name": "캘린더 확인",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 160]
+      "position": [1320, 60]
     },
     {
       "parameters": {
@@ -137,7 +133,7 @@
       "name": "캘린더 존재?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1540, 160]
+      "position": [1540, 60]
     },
     {
       "parameters": {
@@ -147,7 +143,8 @@
         "headerParameters": {
           "parameters": [
             { "name": "Notion-Version", "value": "2022-06-28" },
-            { "name": "Content-Type", "value": "application/json" }
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
           ]
         },
         "sendBody": true,
@@ -158,23 +155,17 @@
       "name": "캘린더 생성",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1760, 280],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "NOTION_HEADER_AUTH_ID",
-          "name": "Notion API"
-        }
-      }
+      "position": [1760, 200]
     },
     {
       "parameters": {
-        "jsCode": "// 캘린더 ID 통합 (기존 또는 새로 생성된 것)\nconst prev = $('캘린더 확인').first().json;\nlet calendarId = prev.calendarId;\n\n// 캘린더 생성 노드에서 온 경우\ntry {\n  const created = $('캘린더 생성').first().json;\n  if (created && created.id) calendarId = created.id;\n} catch(e) {}\n\nreturn [{\n  json: {\n    ...prev,\n    calendarId\n  }\n}];"
+        "jsCode": "// 캘린더 ID 통합 (기존 또는 새로 생성된 것)\nconst prev = $('캘린더 확인').first().json;\nlet calendarId = prev.calendarId;\n\ntry {\n  const created = $('캘린더 생성').first().json;\n  if (created && created.id) calendarId = created.id;\n} catch(e) {}\n\nreturn [{\n  json: {\n    ...prev,\n    calendarId\n  }\n}];"
       },
       "id": "node-merge-calendar",
       "name": "캘린더 ID 통합",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1980, 160]
+      "position": [1980, 60]
     },
     {
       "parameters": {
@@ -184,55 +175,49 @@
         "headerParameters": {
           "parameters": [
             { "name": "Notion-Version", "value": "2022-06-28" },
-            { "name": "Content-Type", "value": "application/json" }
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const d = $json; const props = { '할 일': { title: [{ text: { content: d.todo } }] }, '상태': { status: { name: '시작 전' } }, '시간': { date: { start: d.dateISO } } }; if (d.projectId) { props['프로젝트'] = { relation: [{ id: d.projectId }] }; } if (d.calendarId) { props['캘린더'] = { relation: [{ id: d.calendarId }] }; } return JSON.stringify({ parent: { database_id: '30bd119f-a669-81d0-8730-d824b7bc948c' }, properties: props }); })() }}"
+        "jsonBody": "={{ (() => { const d = $json; const props = { '할 일': { title: [{ text: { content: d.todo } }] }, '상태': { status: { name: '시작 전' } }, '시간 ': { date: { start: d.dateStart } } }; if (d.dueISO) { props['목표날짜'] = { date: { start: d.dueISO } }; } if (d.memo) { props['메모'] = { rich_text: [{ text: { content: d.memo } }] }; } if (d.projectId) { props['프로젝트'] = { relation: [{ id: d.projectId }] }; } if (d.calendarId) { props['캘린더'] = { relation: [{ id: d.calendarId }] }; } return JSON.stringify({ parent: { database_id: '30bd119f-a669-81d0-8730-d824b7bc948c' }, properties: props }); })() }}"
       },
       "id": "node-create-todo",
       "name": "할 일 생성",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2200, 160],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "NOTION_HEADER_AUTH_ID",
-          "name": "Notion API"
-        }
-      }
+      "position": [2200, 60]
     },
     {
       "parameters": {
-        "jsCode": "// 확인 메시지 포맷팅\nconst prev = $('캘린더 ID 통합').first().json;\nconst created = $input.first().json;\nconst pageUrl = created.url || '';\n\nlet msg = '✅ 할 일 등록 완료\\n━━━━━━━━━━━━━━━';\nmsg += `\\n📋 ${prev.todo}`;\nif (prev.projectMatched) {\n  msg += `\\n📁 ${prev.projectName}`;\n} else if (prev.project) {\n  msg += `\\n📁 ${prev.project} (미매칭)`;\n}\nmsg += `\\n📅 ${prev.dateLabel}`;\nif (pageUrl) {\n  msg += `\\n🔗 노션에서 보기`;\n}\n\nreturn [{ json: { chatId: prev.chatId, text: msg, pageUrl } }];"
+        "jsCode": "// 확인 메시지 포맷팅\nconst prev = $('캘린더 ID 통합').first().json;\n\nlet msg = '✅ 할 일 등록 완료\\n━━━━━━━━━━━━━━━';\nmsg += `\\n📋 ${prev.todo}`;\nif (prev.projectMatched) {\n  msg += `\\n📁 ${prev.projectName}`;\n} else if (prev.project) {\n  msg += `\\n📁 ${prev.project} ⚠️ 미매칭`;\n} else {\n  // 프로젝트 없음 → 캘린더 미표시 안내\n  msg += `\\n📁 미지정 (캘린더 뷰 미표시)`;\n  msg += `\\n💡 캘린더에 표시하려면: 프로젝트 - 할 일 형식`;\n  msg += `\\n   예) 운동 - 농구 @오늘`;\n}\nmsg += `\\n📅 ${prev.dateLabel}`;\nif (prev.dueLabel) {\n  msg += `\\n🎯 목표: ${prev.dueLabel}`;\n}\nif (prev.memo) {\n  msg += `\\n📝 메모: ${prev.memo}`;\n}\n\nreturn [{ json: { chatId: prev.chatId, text: msg } }];"
       },
       "id": "node-format-reply",
       "name": "확인 메시지 포맷",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 160]
+      "position": [2420, 60]
     },
     {
       "parameters": {
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.text }}",
-        "additionalFields": {
-          "parse_mode": "HTML"
-        }
+        "additionalFields": {}
       },
       "id": "node-reply",
       "name": "확인 회신",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2640, 160],
+      "position": [2640, 60],
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CREDENTIAL_ID",
+          "id": "1",
           "name": "Telegram Bot"
         }
       }
     },
+
     {
       "parameters": {
         "method": "POST",
@@ -240,34 +225,29 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Notion-Version", "value": "2022-06-28" }
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const now = new Date(); const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '시간', date: { equals: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '시간', direction: 'ascending' }] }); })() }}"
+        "jsonBody": "={{ (() => { const now = new Date(); const kst = new Date(now.getTime() + 9*60*60*1000); const y = kst.getUTCFullYear(); const m = String(kst.getUTCMonth()+1).padStart(2,'0'); const d = String(kst.getUTCDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '시간 ', date: { equals: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '시간 ', direction: 'ascending' }], page_size: 50 }); })() }}"
       },
       "id": "node-list-today",
       "name": "오늘 할 일 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 420],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "NOTION_HEADER_AUTH_ID",
-          "name": "Notion API"
-        }
-      }
+      "position": [660, 360]
     },
     {
       "parameters": {
-        "jsCode": "// /목록 결과 포맷팅\nconst chatId = $('메시지 파싱').first().json.chatId;\nconst results = $input.first().json.results || [];\nconst days = ['일','월','화','수','목','금','토'];\nconst now = new Date();\nconst dateLabel = `${now.getMonth()+1}/${now.getDate()}(${days[now.getDay()]})`;\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n\\n등록된 할 일이 없습니다.` } }];\n}\n\nlet msg = `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n`;\nresults.forEach((item, i) => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const status = item.properties['상태']?.status?.name || '';\n  const icon = status === '진행 중' ? '🔵' : status === '거의 완료' ? '🟡' : '⬜';\n  msg += `\\n${icon} ${i+1}. ${title}`;\n  if (status) msg += ` [${status}]`;\n});\nmsg += `\\n\\n📊 총 ${results.length}건`;\n\nreturn [{ json: { chatId, text: msg } }];"
+        "jsCode": "// /목록 결과 포맷팅\nconst chatId = $('메시지 파싱').first().json.chatId;\nconst results = $input.first().json.results || [];\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9*60*60*1000);\nconst days = ['일','월','화','수','목','금','토'];\nconst dateLabel = `${kst.getUTCMonth()+1}/${kst.getUTCDate()}(${days[kst.getUTCDay()]})`;\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n\\n등록된 할 일이 없습니다.\\n\\n할 일 등록: 운동 @오늘` } }];\n}\n\nconst statusIcon = { '진행 중': '🔵', '거의 완료': '🟡', '핀': '📌', '완료': '✅', '취소': '❌', '못함': '💤' };\n\nlet msg = `📋 ${dateLabel} 할 일\\n━━━━━━━━━━━━━━━\\n`;\n\nresults.forEach((item, i) => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const status = item.properties['상태']?.status?.name || '시작 전';\n  const icon = statusIcon[status] || '⬜';\n  msg += `\\n${icon} ${i+1}. ${title}`;\n  if (status !== '시작 전') msg += ` [${status}]`;\n});\n\nmsg += `\\n\\n📊 총 ${results.length}건`;\nmsg += `\\n\\n💡 /완료 [번호]  /상태 [번호] [상태명]`;\n\nreturn [{ json: { chatId, text: msg } }];"
       },
       "id": "node-format-list",
       "name": "목록 포맷",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 420]
+      "position": [880, 360]
     },
     {
       "parameters": {
@@ -279,14 +259,46 @@
       "name": "목록 회신",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1100, 420],
+      "position": [1100, 360],
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CREDENTIAL_ID",
+          "id": "1",
           "name": "Telegram Bot"
         }
       }
     },
+
+    {
+      "parameters": {
+        "jsCode": "// /완료, /상태, /도움말 2차 분기\nconst data = $('메시지 파싱').first().json;\nconst cmd = data.command;\nconst args = data.args || [];\nconst chatId = data.chatId;\n\nif (cmd === '/도움말' || cmd === '/help') {\n  return [{ json: { route: 'help', chatId } }];\n}\n\nif (cmd === '/완료') {\n  const num = parseInt(args[0]);\n  if (!num || num < 1) {\n    return [{ json: { route: 'error', chatId, errorMsg: '번호를 입력해주세요.\\n예) /완료 1' } }];\n  }\n  return [{ json: { route: 'complete', chatId, num, newStatus: '완료' } }];\n}\n\nif (cmd === '/상태') {\n  const num = parseInt(args[0]);\n  const statusInput = args.slice(1).join(' ').trim();\n  const statusMap = {\n    '시작': '시작 전', '시작전': '시작 전',\n    '진행': '진행 중', '진행중': '진행 중',\n    '완료': '완료',\n    '거의': '거의 완료', '거의완료': '거의 완료',\n    '취소': '취소', '핀': '핀', '못함': '못함'\n  };\n  const newStatus = statusMap[statusInput] || statusInput;\n  const validStatuses = ['시작 전', '진행 중', '완료', '거의 완료', '취소', '핀', '못함', 'Good', 'Try', 'Problem', '이후 완료'];\n\n  if (!num || num < 1 || !statusInput) {\n    return [{ json: { route: 'error', chatId, errorMsg: '형식: /상태 [번호] [상태명]\\n예) /상태 1 진행중\\n\\n상태 목록: 시작전 진행중 완료 거의완료 취소 핀 못함' } }];\n  }\n  if (!validStatuses.includes(newStatus)) {\n    return [{ json: { route: 'error', chatId, errorMsg: `'${statusInput}'은 올바른 상태가 아닙니다.\\n\\n사용 가능: 시작전 진행중 완료 거의완료 취소 핀 못함` } }];\n  }\n  return [{ json: { route: 'status', chatId, num, newStatus } }];\n}\n\nreturn [{ json: { route: 'error', chatId, errorMsg: '알 수 없는 명령입니다. /도움말 을 입력해보세요.' } }];"
+      },
+      "id": "node-action-router",
+      "name": "액션 분기",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 560]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "dataType": "string",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            { "operation": "equal", "value2": "complete", "output": 0 },
+            { "operation": "equal", "value2": "status", "output": 1 },
+            { "operation": "equal", "value2": "help", "output": 2 },
+            { "operation": "equal", "value2": "error", "output": 3 }
+          ]
+        }
+      },
+      "id": "node-action-switch",
+      "name": "액션 스위치",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [880, 560]
+    },
+
     {
       "parameters": {
         "method": "POST",
@@ -294,34 +306,111 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Notion-Version", "value": "2022-06-28" }
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const now = new Date(); const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '목표날짜', date: { before: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '목표날짜', direction: 'ascending' }] }); })() }}"
+        "jsonBody": "={{ (() => { const now = new Date(); const kst = new Date(now.getTime() + 9*60*60*1000); const y = kst.getUTCFullYear(); const m = String(kst.getUTCMonth()+1).padStart(2,'0'); const d = String(kst.getUTCDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { property: '시간 ', date: { equals: today } }, sorts: [{ property: '시간 ', direction: 'ascending' }], page_size: 50 }); })() }}"
+      },
+      "id": "node-complete-list",
+      "name": "완료/상태변경 목록 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 번호에 해당하는 페이지 찾아서 상태 변경\nconst ctx = $('액션 분기').first().json;\nconst results = $input.first().json.results || [];\n\nif (ctx.num > results.length) {\n  return [{ json: { chatId: ctx.chatId, errorMsg: `오늘 할 일이 ${results.length}건이에요. ${results.length}번 이하로 입력해주세요.`, route: 'error' } }];\n}\n\nconst target = results[ctx.num - 1];\nconst title = target.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n\nreturn [{ json: { chatId: ctx.chatId, pageId: target.id, title, num: ctx.num, newStatus: ctx.newStatus, route: 'update' } }];"
+      },
+      "id": "node-find-target",
+      "name": "대상 페이지 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 480]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { '상태': { status: { name: $json.newStatus } } } }) }}"
+      },
+      "id": "node-patch-status",
+      "name": "노션 상태 변경",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const target = $('대상 페이지 확인').first().json;\nconst statusIcon = { '완료': '✅', '진행 중': '🔵', '취소': '❌', '거의 완료': '🟡', '핀': '📌', '시작 전': '⬜', '못함': '💤' };\nconst icon = statusIcon[target.newStatus] || '🔄';\nconst msg = `${icon} ${target.newStatus} 처리\\n━━━━━━━━━━━━━━━\\n📋 ${target.title}`;\nreturn [{ json: { chatId: target.chatId, text: msg } }];"
+      },
+      "id": "node-format-action-result",
+      "name": "처리결과 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 480]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-reply-action",
+      "name": "처리결과 회신",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1980, 480],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const now = new Date(); const kst = new Date(now.getTime() + 9*60*60*1000); const y = kst.getUTCFullYear(); const m = String(kst.getUTCMonth()+1).padStart(2,'0'); const d = String(kst.getUTCDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '목표날짜', date: { before: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '목표날짜', direction: 'ascending' }] }); })() }}"
       },
       "id": "node-list-overdue",
       "name": "밀린 업무 조회 (커맨드)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 600],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "NOTION_HEADER_AUTH_ID",
-          "name": "Notion API"
-        }
-      }
+      "position": [660, 800]
     },
     {
       "parameters": {
-        "jsCode": "// /밀린 결과 포맷팅\nconst chatId = $('메시지 파싱').first().json.chatId;\nconst results = $input.first().json.results || [];\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: '✅ 밀린 업무가 없습니다!' } }];\n}\n\nconst now = new Date();\nconst today = new Date(now.getFullYear(), now.getMonth(), now.getDate());\n\nconst severe = []; // 3일+\nconst mild = [];   // 1~2일\n\nresults.forEach(item => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const dueDate = item.properties['목표날짜']?.date?.start;\n  if (!dueDate) return;\n  const due = new Date(dueDate);\n  const diffDays = Math.floor((today - due) / (1000*60*60*24));\n  const entry = { title, diffDays };\n  if (diffDays >= 3) severe.push(entry);\n  else mild.push(entry);\n});\n\nlet msg = '⚠️ 밀린 업무 알림\\n━━━━━━━━━━━━━━━━━━\\n';\nif (severe.length > 0) {\n  msg += '\\n🔴 3일+ 경과';\n  severe.forEach(e => { msg += `\\n  · ${e.title} (${e.diffDays}일)`; });\n}\nif (mild.length > 0) {\n  msg += '\\n\\n🟡 1~2일 경과';\n  mild.forEach(e => { msg += `\\n  · ${e.title} (${e.diffDays}일)`; });\n}\nmsg += '\\n\\n💡 /완료 명령으로 처리하거나 노션에서 상태를 변경하세요';\n\nreturn [{ json: { chatId, text: msg } }];"
+        "jsCode": "// /밀린 결과 포맷팅\nconst chatId = $('메시지 파싱').first().json.chatId;\nconst results = $input.first().json.results || [];\n\nif (results.length === 0) {\n  return [{ json: { chatId, text: '✅ 밀린 업무가 없습니다!' } }];\n}\n\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9*60*60*1000);\nconst today = new Date(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate());\n\nconst severe = []; const mild = [];\n\nresults.forEach(item => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const dueDate = item.properties['목표날짜']?.date?.start;\n  if (!dueDate) return;\n  const due = new Date(dueDate);\n  const diffDays = Math.floor((today - due) / (1000*60*60*24));\n  const entry = { title, diffDays };\n  if (diffDays >= 3) severe.push(entry);\n  else mild.push(entry);\n});\n\nlet msg = '⚠️ 밀린 업무 알림\\n━━━━━━━━━━━━━━━━━━\\n';\nif (severe.length > 0) {\n  msg += '\\n🔴 3일+ 경과';\n  severe.forEach(e => { msg += `\\n  · ${e.title} (${e.diffDays}일)`; });\n}\nif (mild.length > 0) {\n  msg += '\\n\\n🟡 1~2일 경과';\n  mild.forEach(e => { msg += `\\n  · ${e.title} (${e.diffDays}일)`; });\n}\nmsg += '\\n\\n💡 /완료 [번호] 로 처리하세요';\n\nreturn [{ json: { chatId, text: msg } }];"
       },
       "id": "node-format-overdue",
       "name": "밀린 업무 포맷",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 600]
+      "position": [880, 800]
     },
     {
       "parameters": {
@@ -333,42 +422,80 @@
       "name": "밀린 업무 회신",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1100, 600],
+      "position": [1100, 800],
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CREDENTIAL_ID",
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=📖 사용법 안내\n━━━━━━━━━━━━━━━\n\n📋 할 일 등록\n  [프로젝트 - ]할 일 [@날짜 [시간]] [~목표날짜] [#메모]\n\n  예시:\n  · 운동 @오늘\n  · 팀 미팅 @오늘 14:00\n  · 유튜브 - 영상편집 @내일 오전9시 ~다음주\n  · 홈페이지 - 배너수정 @월\n\n📅 날짜 키워드\n  오늘 내일 모레 다음주\n  월화수목금토일, M/D\n\n⏰ 시간 형식\n  14:00  9:30  오전10시  오후3시30분\n\n🔧 커맨드\n  /목록        오늘 할 일 보기\n  /완료 1      1번 항목 완료\n  /상태 1 진행중  상태 변경\n  /밀린        기한 지난 업무\n  /프로젝트    프로젝트 목록 보기\n  /도움말      이 메시지",
+        "additionalFields": {}
+      },
+      "id": "node-reply-help",
+      "name": "도움말 회신",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 640],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
           "name": "Telegram Bot"
         }
       }
     },
     {
       "parameters": {
-        "chatId": "={{ $('메시지 파싱').first().json.chatId }}",
-        "text": "=⚠️ /완료 기능은 아직 준비 중입니다.\n노션에서 직접 상태를 변경해주세요.",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.errorMsg }}",
         "additionalFields": {}
       },
-      "id": "node-reply-done",
-      "name": "완료 안내",
+      "id": "node-reply-error",
+      "name": "오류 회신",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [660, 500],
+      "position": [1100, 720],
       "credentials": {
         "telegramApi": {
-          "id": "TELEGRAM_CREDENTIAL_ID",
+          "id": "1",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=📁 프로젝트 목록\n━━━━━━━━━━━━━━━\n\n🎯 마케팅\n  · 유튜브 채널 운영\n  · 인스타그램 운영\n  · 광고 운영\n  · 상품 촬영/콘텐츠\n\n📦 상품/생산\n  · 시즌 상품 기획\n  · DIY키트 라인업 확대\n  · 원자재/재고 관리\n  · 꽃/공예 레퍼런스\n\n🛒 채널/판매\n  · 웨딩기프트 런칭\n  · 홈페이지 리뉴얼\n  · 사방넷 세팅\n\n💬 고객/CS\n  · 쇼핑몰 CS 관리\n  · 플랫폼 리뷰 관리\n\n⚙️ 운영/관리\n  · n8n 자동화 구축\n  · 창고 정리\n\n📊 경영/성장\n  · 자기개발\n  · 운동\n  · 가계부\n  · 월간 매출 분석\n  · 경쟁사/트렌드 조사\n\n💡 등록 예시\n유튜브 - 영상편집 @오늘\n쇼핑몰 CS - 주문문의 @오늘",
+        "additionalFields": {}
+      },
+      "id": "node-reply-projects",
+      "name": "프로젝트 목록 회신",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [660, 960],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
           "name": "Telegram Bot"
         }
       }
     }
   ],
   "connections": {
-    "Telegram Trigger": { "main": [[{ "node": "메시지 파싱", "type": "main", "index": 0 }]] },
+    "TelegramBot": { "main": [[{ "node": "메시지 파싱", "type": "main", "index": 0 }]] },
     "메시지 파싱": { "main": [[{ "node": "커맨드 라우터", "type": "main", "index": 0 }]] },
     "커맨드 라우터": {
       "main": [
         [{ "node": "프로젝트 검색", "type": "main", "index": 0 }],
         [{ "node": "오늘 할 일 조회", "type": "main", "index": 0 }],
-        [{ "node": "완료 안내", "type": "main", "index": 0 }],
-        [{ "node": "밀린 업무 조회 (커맨드)", "type": "main", "index": 0 }]
+        [{ "node": "액션 분기", "type": "main", "index": 0 }],
+        [{ "node": "밀린 업무 조회 (커맨드)", "type": "main", "index": 0 }],
+        [{ "node": "프로젝트 목록 회신", "type": "main", "index": 0 }]
       ]
     },
     "프로젝트 검색": { "main": [[{ "node": "프로젝트 매칭 결과", "type": "main", "index": 0 }]] },
@@ -387,6 +514,19 @@
     "확인 메시지 포맷": { "main": [[{ "node": "확인 회신", "type": "main", "index": 0 }]] },
     "오늘 할 일 조회": { "main": [[{ "node": "목록 포맷", "type": "main", "index": 0 }]] },
     "목록 포맷": { "main": [[{ "node": "목록 회신", "type": "main", "index": 0 }]] },
+    "액션 분기": { "main": [[{ "node": "액션 스위치", "type": "main", "index": 0 }]] },
+    "액션 스위치": {
+      "main": [
+        [{ "node": "완료/상태변경 목록 조회", "type": "main", "index": 0 }],
+        [{ "node": "완료/상태변경 목록 조회", "type": "main", "index": 0 }],
+        [{ "node": "도움말 회신", "type": "main", "index": 0 }],
+        [{ "node": "오류 회신", "type": "main", "index": 0 }]
+      ]
+    },
+    "완료/상태변경 목록 조회": { "main": [[{ "node": "대상 페이지 확인", "type": "main", "index": 0 }]] },
+    "대상 페이지 확인": { "main": [[{ "node": "노션 상태 변경", "type": "main", "index": 0 }]] },
+    "노션 상태 변경": { "main": [[{ "node": "처리결과 포맷", "type": "main", "index": 0 }]] },
+    "처리결과 포맷": { "main": [[{ "node": "처리결과 회신", "type": "main", "index": 0 }]] },
     "밀린 업무 조회 (커맨드)": { "main": [[{ "node": "밀린 업무 포맷", "type": "main", "index": 0 }]] },
     "밀린 업무 포맷": { "main": [[{ "node": "밀린 업무 회신", "type": "main", "index": 0 }]] }
   },
