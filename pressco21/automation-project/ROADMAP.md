@@ -115,7 +115,7 @@
     - 타임아웃: 5초 설정
     - 응답 JSON 파싱 Code 노드 작성
 
-- **Task 003: AI 폴백 로직 구현 및 F1 워크플로우 통합 배포**
+- **Task 003: AI 폴백 로직 구현 및 F1 워크플로우 통합 배포** -- 완료
   - If 노드로 Gemini 응답 성공/실패 분기
     - 성공 조건: HTTP 200 + JSON 파싱 성공 + title 필드 not null
     - 실패 시: 기존 Regex 파서(parse-message.js 기반 Code 노드)로 자동 전환
@@ -134,9 +134,9 @@
     - AI 파싱 성공률 8/10 이상 확인
     - 폴백 동작 확인 (Gemini 타임아웃 시 5초 내 Regex 전환)
 
-### Phase 5: 인라인 버튼 + Callback 워크플로우 (F1-BTN)
+### Phase 5: 인라인 버튼 + Callback 워크플로우 (F1-BTN) -- 완료
 
-- **Task 004: Callback 처리 워크플로우 신규 작성**
+- **Task 004: Callback 처리 워크플로우 신규 작성** -- 완료 (F1 내부 통합 방식으로 구현)
   - 신규 워크플로우 파일: `workflows/notion-callback.json`
   - Webhook Trigger 노드 구성 (n8n 자동 생성 UUID path 활용)
   - callback_data 파싱 로직
@@ -149,7 +149,7 @@
   - 에러 처리: Notion 업데이트 실패 시 answerCallbackQuery에 "처리 실패" 텍스트 표시
   - 보안: X-Telegram-Bot-Api-Secret-Token 헤더 검증 로직
 
-- **Task 005: F1 텔레그램 응답에 인라인 버튼 추가**
+- **Task 005: F1 텔레그램 응답에 인라인 버튼 추가** -- 완료
   - F1 워크플로우의 기존 Telegram 응답 노드를 HTTP Request 노드로 교체
     - n8n Telegram 노드 v1.2는 reply_markup 미지원 -> sendMessage API 직접 호출
     - reply_markup JSON 구조: inline_keyboard 배열
@@ -174,9 +174,9 @@
     - 각 버튼 클릭 후 Notion 상태 변경 확인 (3초 내)
     - 버튼 클릭 후 텔레그램 메시지에서 버튼 제거 확인
 
-### Phase 6: 커맨드 확장 (F1-CMD)
+### Phase 6: 커맨드 확장 (F1-CMD) -- 완료
 
-- **Task 006: /주간 커맨드 구현**
+- **Task 006: /주간 커맨드 구현** -- 완료
   - F1 워크플로우 Switch 노드에 `/주간` 분기 추가
   - 이번 주 월~일 KST 날짜 범위 계산 Code 노드
     - moment().utcOffset('+09:00') 패턴으로 KST 처리
@@ -192,7 +192,7 @@
   - 텔레그램 메시지 발송 (주간 현황 형식)
   - 테스트: /주간 입력 후 실제 Notion 데이터와 일치하는 완료율 확인
 
-- **Task 007: /수정 커맨드 구현**
+- **Task 007: /수정 커맨드 구현** -- 완료
   - F1 워크플로우 Switch 노드에 `/수정` 분기 추가
   - 번호 파싱 Code 노드
     - `/수정 3 @내일` -> 번호 3, 날짜 변경
@@ -214,15 +214,15 @@
     - `/수정 3 새 제목` -> Notion 제목 변경 확인
     - static data 없을 때 안내 메시지 확인
 
-### Phase 7: 노션 -> 구글 캘린더 역방향 동기화 (F5)
+### Phase 7: 노션 -> 구글 캘린더 역방향 동기화 (F5) -- 완료
 
-- **Task 008: F2 워크플로우 수정 ([from-gcal] 태그 추가)**
+- **Task 008: F2 워크플로우 수정 ([from-gcal] 태그 추가)** -- 완료 (이미 포함됨)
   - F2 워크플로우(google-calendar-todo.json)에서 Notion 할 일 생성 시 메모 필드에 `[from-gcal]` 태그 추가
   - 기존 메모 내용이 있을 경우 메모 맨 앞에 `[from-gcal] ` prepend
   - F2 워크플로우 서버 배포 및 기존 동작 정상 확인
   - 테스트: 구글 캘린더에서 일정 추가 -> 노션 할 일 생성 시 메모에 [from-gcal] 태그 포함 확인
 
-- **Task 009: F5 역방향 동기화 워크플로우 신규 작성**
+- **Task 009: F5 역방향 동기화 워크플로우 신규 작성** -- 완료 (ID: gT9ST8Zf9wizfKpL)
   - 신규 워크플로우 파일: `workflows/notion-to-gcal-sync.json`
   - Schedule Trigger: 5분 간격 실행
   - Notion 할 일 DB 조회 HTTP Request 노드
@@ -243,7 +243,7 @@
     - 429 응답 시 1초 대기 후 1회 자동 재시도
   - 타임존 처리: 모든 날짜 계산 UTC+9 (moment().utcOffset('+09:00'))
 
-- **Task 010: 무한루프 방지 검증 및 통합 테스트**
+- **Task 010: 무한루프 방지 검증 및 통합 테스트** -- 진행 중 (사용자 테스트 대기)
   - 무한루프 방지 메커니즘 검증
     - 시나리오 1: 구글 캘린더 입력 -> F2 -> 노션 ([from-gcal] 태그) -> F5 건너뜀 (정상)
     - 시나리오 2: 노션 직접 입력 -> F5 -> 구글 캘린더 생성 -> F2 -> 노션에 중복 확인
