@@ -201,7 +201,8 @@
           "id": "1",
           "name": "Telegram Bot API"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -252,7 +253,8 @@
           "id": "1",
           "name": "Telegram Bot API"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -308,7 +310,8 @@
       "position": [
         -3008,
         -48
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -353,7 +356,8 @@
       "position": [
         -3008,
         144
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -394,11 +398,12 @@
       "position": [
         -3008,
         336
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// 기업마당 API 응답 정규화\n// 실제 구조: { jsonArray: [ {pblancId, pblancNm, ...}, {...} ] }\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  // jsonArray가 배열로 직접 들어옴 (item 없음)\n  const data = items.jsonArray || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n  \n  console.log(`기업마당 데이터 수: ${dataArray.length}`);\n  \n  for (const item of dataArray) {\n    // pblancId 필드 확인\n    if (!item.pblancId) {\n      console.log('pblancId 없음:', Object.keys(item).slice(0, 5));\n      continue;\n    }\n    \n    // 날짜 파싱: \"20260107 ~ 20260205\" 형식\n    let startDate = null;\n    let endDate = null;\n    if (item.reqstBeginEndDe) {\n      const dates = item.reqstBeginEndDe.split('~').map(d => d.trim());\n      if (dates[0] && dates[0].length >= 8) {\n        const d = dates[0].replace(/[^0-9]/g, '').slice(0, 8);\n        startDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n      if (dates[1] && dates[1].length >= 8) {\n        const d = dates[1].replace(/[^0-9]/g, '').slice(0, 8);\n        endDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n    }\n    \n    // 지역 추출 (hashTags에서)\n    const regions = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];\n    const hashTags = item.hashTags || item.hashtags || '';\n    const region = hashTags.split(',').find(t => regions.includes(t.trim())) || '전국';\n    \n    // ✅ 게시일시_raw: creatPnttm(등록/게시일시 후보)\n    const postedRaw = item.creatPnttm || item.createdDt || item.creatDt || null;\n\n    normalized.push({\n      json: {\n        공고ID: `BIZINFO_${item.pblancId}`,\n        지원사업이름: item.pblancNm || '',\n        소관기관: item.jrsdInsttNm || '',\n        수행기관: item.excInsttNm || '',\n        지원분야: item.pldirSportRealmLclasCodeNm || '',\n        지원대상: item.trgetNm || '',\n        사업개요: item.bsnsSumryCn || '',\n        지역: region,\n        신청시작일: startDate,\n        마감일: endDate,\n        신청방법: item.reqstMthPapersCn || '',\n        신청Link: item.pblancUrl || '',\n        지원금액: '',\n        수집출처: '기업마당',\n\n        게시일시_raw: postedRaw,\n        게시일시_source: postedRaw ? 'creatPnttm' : ''\n      }\n    });\n  }\n  \n  console.log(`기업마당 정규화 완료: ${normalized.length}건`);\n  \n} catch (e) {\n  console.log('기업마당 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { _empty: true, source: '기업마당', error: '데이터 없음' } }];"
+        "jsCode": "// 기업마당 API 응답 정규화\n// 실제 구조: { jsonArray: [ {pblancId, pblancNm, ...}, {...} ] }\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  // jsonArray가 배열로 직접 들어옴 (item 없음)\n  const data = items.jsonArray || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n  \n  console.log(`기업마당 데이터 수: ${dataArray.length}`);\n  \n  for (const item of dataArray) {\n    // pblancId 필드 확인\n    if (!item.pblancId) {\n      console.log('pblancId 없음:', Object.keys(item).slice(0, 5));\n      continue;\n    }\n    \n    // 날짜 파싱: \"20260107 ~ 20260205\" 형식\n    let startDate = null;\n    let endDate = null;\n    if (item.reqstBeginEndDe) {\n      const dates = item.reqstBeginEndDe.split('~').map(d => d.trim());\n      if (dates[0] && dates[0].length >= 8) {\n        const d = dates[0].replace(/[^0-9]/g, '').slice(0, 8);\n        startDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n      if (dates[1] && dates[1].length >= 8) {\n        const d = dates[1].replace(/[^0-9]/g, '').slice(0, 8);\n        endDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n    }\n    \n    // 지역 추출 (hashTags에서)\n    const regions = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];\n    const hashTags = item.hashTags || item.hashtags || '';\n    const region = hashTags.split(',').find(t => regions.includes(t.trim())) || '전국';\n    \n    // ✅ 게시일시_raw: creatPnttm(등록/게시일시 후보)\n    const postedRaw = item.creatPnttm || item.createdDt || item.creatDt || null;\n\n    normalized.push({\n      json: {\n        공고ID: `BIZINFO_${item.pblancId}`,\n        지원사업이름: item.pblancNm || '',\n        소관기관: item.jrsdInsttNm || '',\n        수행기관: item.excInsttNm || '',\n        지원분야: item.pldirSportRealmLclasCodeNm || '',\n        지원대상: item.trgetNm || '',\n        사업개요: item.bsnsSumryCn || '',\n        지역: region,\n        신청시작일: startDate,\n        마감일: endDate,\n        신청방법: item.reqstMthPapersCn || '',\n        신청Link: item.pblancUrl ? (item.pblancUrl.startsWith('http') ? item.pblancUrl : 'https://www.bizinfo.go.kr' + item.pblancUrl) : '',\n        지원금액: '',\n        수집출처: '기업마당',\n\n        게시일시_raw: postedRaw,\n        게시일시_source: postedRaw ? 'creatPnttm' : ''\n      }\n    });\n  }\n  \n  console.log(`기업마당 정규화 완료: ${normalized.length}건`);\n  \n} catch (e) {\n  console.log('기업마당 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { _empty: true, source: '기업마당', error: '데이터 없음' } }];"
       },
       "id": "ef929410-b3ea-48de-a7a1-17d03276377f",
       "name": "기업마당 정규화",
@@ -686,7 +691,8 @@
           "id": "qC5YRvdMTRVPbAmQ",
           "name": "Google Gemini(PaLM) Api account"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -1522,7 +1528,8 @@
           "id": "JK1lFxPvfCkIFclZ",
           "name": "Airtable PAT"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -2276,7 +2283,8 @@
           "id": "JK1lFxPvfCkIFclZ",
           "name": "Airtable PAT"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -2311,10 +2319,10 @@
             "지원대상": "={{ $json['지원대상'] }}",
             "\b세부 내용": "={{ $json['사업개요'] }}",
             "지원금액": "={{ $json['지원금액'] }}",
-            "id": "={{ $('중복제거 & 신규필터1').item.json._airtableRecordId }}",
-            "게시일시_raw": "={{ $('중복제거 & 신규필터1').item.json['게시일시_raw'] }}",
-            "게시일시_source": "={{ $('중복제거 & 신규필터1').item.json['게시일시_source'] }}",
-            "수정일시_raw": "={{ $('중복제거 & 신규필터1').item.json['수정일시_raw'] }}",
+            "id": "={{ $json._airtableRecordId }}",
+            "게시일시_raw": "={{ $json['게시일시_raw'] }}",
+            "게시일시_source": "={{ $json['게시일시_source'] }}",
+            "수정일시_raw": "={{ $json['수정일시_raw'] }}",
             "hashtags": "={{ $json['hashtags'] || '' }}",
             "자동화 LOG": "={{ '[' + $now.format('yyyy-MM-dd HH:mm') + '] ' + ($json._action === 'update' ? '업데이트' : '신규수집') + ' | ' + ($json['수집출처'] || '미상') + ' | ' + ($json['관련도점수'] != null ? $json['관련도점수'] + '점' : '') }}"
           },
@@ -3043,7 +3051,8 @@
           "id": "JK1lFxPvfCkIFclZ",
           "name": "Airtable PAT"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -3078,10 +3087,10 @@
             "지원대상": "={{ $json['지원대상'] }}",
             "\b세부 내용": "={{ $json['사업개요'] }}",
             "지원금액": "={{ $json['지원금액'] }}",
-            "id": "{{ $('중복제거 & 신규필터1').item.json._airtableRecordId }}",
-            "게시일시_raw": "={{ $('중복제거 & 신규필터1').item.json['게시일시_raw'] }}",
-            "게시일시_source": "={{ $('중복제거 & 신규필터1').item.json['게시일시_source'] }}",
-            "수정일시_raw": "={{ $('중복제거 & 신규필터1').item.json['수정일시_raw'] }}",
+            "id": "={{ $json._airtableRecordId }}",
+            "게시일시_raw": "={{ $json['게시일시_raw'] }}",
+            "게시일시_source": "={{ $json['게시일시_source'] }}",
+            "수정일시_raw": "={{ $json['수정일시_raw'] }}",
             "hashtags": "={{ $json['hashtags'] || '' }}",
             "자동화 LOG": "={{ '[' + $now.format('yyyy-MM-dd HH:mm') + '] ' + ($json._action === 'update' ? '업데이트' : '신규수집') + ' | ' + ($json['수집출처'] || '미상') + ' | ' + ($json['관련도점수'] != null ? $json['관련도점수'] + '점' : '') }}"
           },
@@ -3810,6 +3819,81 @@
           "id": "JK1lFxPvfCkIFclZ",
           "name": "Airtable PAT"
         }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "56190385-b883-4282-bb73-3c3594179b1d",
+      "name": "신규없음 체크",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1900,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nif (items.length > 0) return [];\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });\nreturn [{ json: { isEmpty: true, 수집일: today } }];"
+      }
+    },
+    {
+      "id": "c5d0d3f0-785b-4def-920a-94c83b21710c",
+      "name": "신규없음 Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1680,
+        520
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=📋 <b>정부지원사업 일일 리포트</b>\n📅 {{ $json.수집일 }}\n\n⚪ 오늘 신규 공고 없음",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      }
+    },
+    {
+      "id": "f9eb3a38-55fb-4842-b2b5-796c40444dc2",
+      "name": "일일 요약 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        640
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const allItems = $input.all();\nconst counts = { 고관련: 0, 검토: 0, 저관련: 0 };\nfor (const item of allItems) {\n  const grade = item.json.관련도등급;\n  if (grade === '고관련') counts.고관련++;\n  else if (grade === '검토') counts.검토++;\n  else counts.저관련++;\n}\nconst total = allItems.length;\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });\nconst summaryText = `📋 <b>정부지원사업 일일 리포트</b>\\n📅 ${today}\\n\\n🔥 긴급검토: ${counts.고관련}건\\n🧐 검토권장: ${counts.검토}건\\n⚪ 저관련: ${counts.저관련}건\\n\\n📊 총 분석: ${total}건`;\nreturn [{ json: { summaryText, counts, total, today } }];"
+      }
+    },
+    {
+      "id": "8f25d5ab-1d19-4a1b-b1f3-8fa679823aa1",
+      "name": "일일 요약 Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        60,
+        640
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.summaryText }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
       }
     }
   ],
@@ -4056,6 +4140,11 @@
             "node": "유효 공고만1",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "신규없음 체크",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -4144,6 +4233,11 @@
             "node": "관련도 분기",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "일일 요약 집계",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -4211,6 +4305,28 @@
         [
           {
             "node": "Loop Over Items (검토)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "신규없음 체크": {
+      "main": [
+        [
+          {
+            "node": "신규없음 Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "일일 요약 집계": {
+      "main": [
+        [
+          {
+            "node": "일일 요약 Telegram",
             "type": "main",
             "index": 0
           }
