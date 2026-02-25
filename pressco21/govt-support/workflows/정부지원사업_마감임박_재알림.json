@@ -1,0 +1,368 @@
+{
+  "name": "정부지원사업 마감임박 재알림",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 0 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000002",
+      "name": "Airtable 마감임박 조회",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [300, 160],
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app6CynYU5qzIFyKl",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblkFgVYyDr6lWJNs",
+          "mode": "id"
+        },
+        "filterByFormula": "AND({관련 지수}>=70,{상태}=\"데이터 수집\",IS_AFTER({마감일},YESTERDAY()),IS_BEFORE({마감일},DATEADD(TODAY(),4,\"days\")))",
+        "options": {}
+      },
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "JK1lFxPvfCkIFclZ",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000003",
+      "name": "D-Day 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 160],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nif (items.length === 0) return [{ json: { count: 0, alerts: [] } }];\n\n// 에러 아이템 필터링 (continueOnFail 시 error 객체가 올 수 있음)\nconst validItems = items.filter(item => !item.json.error);\nif (validItems.length === 0) return [{ json: { count: 0, alerts: [] } }];\n\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst today = new Date(Date.now() + kstOffset);\ntoday.setUTCHours(0, 0, 0, 0);\n\nconst alerts = validItems.map(item => {\n  const f = item.json.fields || item.json;\n  const deadlineStr = f['마감일'] || '';\n  let dDay = null;\n  if (deadlineStr) {\n    const deadline = new Date(deadlineStr + 'T00:00:00+09:00');\n    dDay = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));\n  }\n  return {\n    이름: f['지원 사업 이름'] || '',\n    마감일: deadlineStr,\n    dDay: dDay,\n    점수: f['관련 지수'] || 0,\n    URL: f['URL'] || '',\n    recordId: item.json.id || ''\n  };\n});\n\nreturn [{ json: { count: alerts.length, alerts } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000004",
+      "name": "IF 건수 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [820, 160],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-deadline-count",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000005",
+      "name": "알림 아이템 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const { alerts } = $input.first().json;\nreturn alerts.map(a => ({ json: a }));"
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000006",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1340, 60],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000007",
+      "name": "Telegram 마감임박 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1600, -40],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=\u26a0\ufe0f <b>\ub9c8\uac10 \uc784\ubc15!</b> (D-{{ $json.dDay }})\n\n\ud83d\udccc {{ $json['\uc774\ub984'] }}\n\n\ud83d\udcc5 \ub9c8\uac10\uc77c: {{ $json['\ub9c8\uac10\uc77c'] }}\n\ud83e\udd16 AI \uc801\ud569\ub3c4: {{ $json['\uc810\uc218'] }}\uc810\n\n\ud83d\udd17 <a href=\"{{ $json.URL }}\">\uacf5\uace0 \ubc14\ub85c\uac00\uae30</a>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000008",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1860, -40],
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000009",
+      "name": "NoOp 종료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1080, 280],
+      "parameters": {}
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000010",
+      "name": "Airtable 기간만료 조회",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [300, 500],
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app6CynYU5qzIFyKl",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblkFgVYyDr6lWJNs",
+          "mode": "id"
+        },
+        "filterByFormula": "AND({상태}=\"데이터 수집\",{마감일}!=\"\",IS_BEFORE({마감일},TODAY()))",
+        "options": {}
+      },
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "JK1lFxPvfCkIFclZ",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000011",
+      "name": "IF 기간만료 건수",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [560, 500],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-expired-count",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000012",
+      "name": "Airtable 기간만료 업데이트",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [820, 420],
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app6CynYU5qzIFyKl",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblkFgVYyDr6lWJNs",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "상태": "기간만료"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "상태",
+              "displayName": "상태",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                { "name": "데이터 수집", "value": "데이터 수집" },
+                { "name": "작성 중", "value": "작성 중" },
+                { "name": "작성 완료", "value": "작성 완료" },
+                { "name": "지원 완료", "value": "지원 완료" },
+                { "name": "탈락", "value": "탈락" },
+                { "name": "기간만료", "value": "기간만료" }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "JK1lFxPvfCkIFclZ",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000013",
+      "name": "NoOp 기간만료 종료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [820, 600],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "Airtable 마감임박 조회", "type": "main", "index": 0 },
+          { "node": "Airtable 기간만료 조회", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Airtable 마감임박 조회": {
+      "main": [
+        [
+          { "node": "D-Day 계산", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "D-Day 계산": {
+      "main": [
+        [
+          { "node": "IF 건수 체크", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF 건수 체크": {
+      "main": [
+        [
+          { "node": "알림 아이템 분리", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "NoOp 종료", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "알림 아이템 분리": {
+      "main": [
+        [
+          { "node": "Loop Over Items", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          { "node": "Telegram 마감임박 알림", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Telegram 마감임박 알림": {
+      "main": [
+        [
+          { "node": "Wait", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          { "node": "Loop Over Items", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Airtable 기간만료 조회": {
+      "main": [
+        [
+          { "node": "IF 기간만료 건수", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF 기간만료 건수": {
+      "main": [
+        [
+          { "node": "Airtable 기간만료 업데이트", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "NoOp 기간만료 종료", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

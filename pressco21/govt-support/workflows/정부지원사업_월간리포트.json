@@ -1,0 +1,144 @@
+{
+  "name": "정부지원사업_월간리포트",
+  "nodes": [
+    {
+      "id": "node-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 1 1 * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-date-calc",
+      "name": "Code_날짜계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// KST 기준 지난달 범위 계산\nconst now = new Date();\nconst kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst year = kstNow.getUTCFullYear();\nconst month = kstNow.getUTCMonth(); // 0-indexed: 현재달\n\n// 지난달 첫날 (UTC)\nconst lastMonthStart = new Date(Date.UTC(year, month - 1, 1));\n// 이번달 첫날 (UTC)\nconst thisMonthStart = new Date(Date.UTC(year, month, 1));\n\nconst startStr = lastMonthStart.toISOString().split('T')[0];\nconst endStr = thisMonthStart.toISOString().split('T')[0];\n\nconst filterFormula = `AND(IS_SAME_OR_AFTER({Created}, '${startStr}'), IS_BEFORE({Created}, '${endStr}'))`;\nconst reportMonth = `${year}년 ${month}월`;\n\nreturn [{ json: { filterFormula, reportMonth, startStr, endStr } }];"
+      }
+    },
+    {
+      "id": "node-airtable-query",
+      "name": "Airtable_월간조회",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [710, 300],
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app6CynYU5qzIFyKl",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblkFgVYyDr6lWJNs",
+          "mode": "id"
+        },
+        "filterByFormula": "={{ $json.filterFormula }}",
+        "options": {}
+      },
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "JK1lFxPvfCkIFclZ",
+          "name": "Airtable PAT"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "node-aggregate",
+      "name": "Code_월간집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst reportMonth = $('Code_날짜계산').first().json.reportMonth;\n\nif (!items || items.length === 0 || (items.length === 1 && items[0].json.error)) {\n  return [{ json: { reportMonth, totalCount: 0, 긴급검토: 0, 검토권장: 0, 저관련: 0, 신청완료: 0, 미신청: 0, 미검토: 0, 기간만료: 0, 기업마당: 0, kStartup: 0, 보조금24: 0, avgScore: 0 } }];\n}\n\nconst counts = { 긴급검토: 0, 검토권장: 0, 저관련: 0 };\nconst statusCounts = { 신청완료: 0, 미신청: 0, 미검토: 0, 기간만료: 0 };\nconst sourceCounts = { 기업마당: 0, kStartup: 0, 보조금24: 0 };\nlet totalScore = 0, scoreCount = 0;\n\nfor (const item of items) {\n  const f = item.json.fields || item.json;\n  const score = Number(f['관련 지수'] || 0);\n  const status = f['상태'] || '';\n  const source = f['수집 출처'] || '';\n\n  // 관련지수 분류\n  if (score >= 70) counts.긴급검토++;\n  else if (score >= 30) counts.검토권장++;\n  else counts.저관련++;\n\n  // 상태 분류\n  if (status === '지원 완료' || status === '작성 완료') statusCounts.신청완료++;\n  else if (status === '기간만료' || status === '탈락') statusCounts.기간만료++;\n  else if (status === '작성 중') statusCounts.미신청++;\n  else statusCounts.미검토++;\n\n  // 수집 소스\n  if (source === '기업마당') sourceCounts.기업마당++;\n  else if (source === 'K-Startup') sourceCounts.kStartup++;\n  else if (source === '보조금24') sourceCounts.보조금24++;\n\n  if (score > 0) { totalScore += score; scoreCount++; }\n}\n\nconst avgScore = scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : '0';\n\nreturn [{ json: {\n  reportMonth,\n  totalCount: items.length,\n  긴급검토: counts.긴급검토,\n  검토권장: counts.검토권장,\n  저관련: counts.저관련,\n  신청완료: statusCounts.신청완료,\n  미신청: statusCounts.미신청,\n  미검토: statusCounts.미검토,\n  기간만료: statusCounts.기간만료,\n  기업마당: sourceCounts.기업마당,\n  kStartup: sourceCounts.kStartup,\n  보조금24: sourceCounts.보조금24,\n  avgScore\n} }];"
+      }
+    },
+    {
+      "id": "node-telegram",
+      "name": "Telegram_월간리포트",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1170, 300],
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "7713811206",
+        "text": "=\ud83d\udcca <b>{{ $json.reportMonth }} \uc815\ubd80\uc9c0\uc6d0\uc0ac\uc5c5 \uc6d4\uac04 \ub9ac\ud3ec\ud2b8</b>\n\n\ud83d\udce6 \ucd1d \uc218\uc9d1: <b>{{ $json.totalCount }}\uac74</b>\n\n<b>\ud83d\udd0d \uad00\ub828\ub3c4 \ubd84\ub958</b>\n\ud83d\udd25 \uae34\uae09\uac80\ud1a0(70\uc810\u2191): {{ $json.긴급검토 }}\uac74\n\ud83e\uddd0 \uac80\ud1a0\uad8c\uc7a5(30~69): {{ $json.검토권장 }}\uac74\n\u26aa \uc800\uad00\ub828(30\uc810\u2193): {{ $json.저관련 }}\uac74\n\ud83e\udd16 AI \ud3c9\uade0\uc810\uc218: {{ $json.avgScore }}\uc810\n\n<b>\ud83d\udccb \ucc98\ub9ac \ud604\ud669</b>\n\u2705 \uc2e0\uccad\uc644\ub8cc: {{ $json.신청완료 }}\uac74\n\u270f\ufe0f \ubbf8\uc2e0\uccad: {{ $json.미신청 }}\uac74\n\u23f3 \ubbf8\uac80\ud1a0: {{ $json.미검토 }}\uac74\n\ud83d\udc80 \uae30\uac04\ub9cc\ub8cc: {{ $json.기간만료 }}\uac74\n\n<b>\ud83d\udce1 \uc218\uc9d1 \uc18c\uc2a4</b>\n\uae30\uc5c5\ub9c8\ub2f9: {{ $json.기업마당 }}\uac74 | K-Startup: {{ $json.kStartup }}\uac74 | \ubcf4\uc870\uae0824: {{ $json.보조금24 }}\uac74",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code_날짜계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_날짜계산": {
+      "main": [
+        [
+          {
+            "node": "Airtable_월간조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable_월간조회": {
+      "main": [
+        [
+          {
+            "node": "Code_월간집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_월간집계": {
+      "main": [
+        [
+          {
+            "node": "Telegram_월간리포트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

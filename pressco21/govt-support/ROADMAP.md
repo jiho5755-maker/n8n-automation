@@ -639,16 +639,17 @@
 
 ---
 
-### Phase 4: 확장 기능 구현 (Phase 1 안정 운영 2주 후)
+### Phase 4: 확장 기능 구현 🔄 부분 완료 (2026-02-25)
 
 > 목표: 추가 수집 소스(고용24, 소진공)를 연동하고, 마감 임박 재알림 및 월간 리포트 기능을 구현하여 시스템 활용도를 높인다.
+> **결과**: GS-401/402(추가 소스 연동) 건너뜀 — API 카테고리 불일치 사유 아래 기록. GS-403/404(재알림/월간리포트) 완료.
 
 ---
 
 **GS-401: 고용24 API 추가 연동**
 
 - 담당 에이전트: `n8n-workflow-builder`
-- 상태: 대기중
+- 상태: ⏭️ 건너뜀 — 고용24는 채용정보(구인구직) API로 정부지원사업 공고와 카테고리 상이
 - 예상 소요: 3시간
 - 선행 태스크: GS-303
 - 작업 내용:
@@ -673,7 +674,7 @@
 **GS-402: 소진공 API 추가 연동**
 
 - 담당 에이전트: `n8n-workflow-builder`
-- 상태: 대기중
+- 상태: ⏭️ 건너뜀 — 소진공 지원사업 공고는 기업마당 API에 포함되어 중복, 상가/상권정보 API만 별도 제공
 - 예상 소요: 3시간
 - 선행 태스크: GS-303
 - 작업 내용:
@@ -698,7 +699,7 @@
 **GS-403: 마감 임박 재알림 워크플로우 구현**
 
 - 담당 에이전트: `n8n-workflow-builder`
-- 상태: 대기중
+- 상태: ✅ 완료 (2026-02-25, 워크플로우 ID: 3TXzJ9AADTf9oNL6, 기간만료 5건 자동 업데이트 확인)
 - 예상 소요: 2시간
 - 선행 태스크: GS-303
 - 작업 내용:
@@ -727,7 +728,7 @@
 **GS-404: 월간 신청 현황 리포트 구현**
 
 - 담당 에이전트: `n8n-workflow-builder`
-- 상태: 대기중
+- 상태: ✅ 완료 (2026-02-25, 워크플로우 ID: oeIOcnDYpSDmbkKp, 매월 1일 10:00 KST 자동 실행)
 - 예상 소요: 2시간
 - 선행 태스크: GS-303
 - 작업 내용:
@@ -772,7 +773,9 @@ govt-support/
   PRD.md                                        # 정부지원사업 자동수집 시스템 PRD (설계 문서)
   ROADMAP.md                                     # 이 파일 (개발 로드맵)
   workflows/
-    정부지원사업_Pressco21.json                    # n8n 워크플로우 JSON (import 완료, ID: 7MXN1lNCR3b7VcLF)
+    정부지원사업_Pressco21.json                    # n8n 워크플로우 JSON (ID: 7MXN1lNCR3b7VcLF, 매일 09:00 KST 운영 중)
+    정부지원사업_마감임박_재알림.json               # n8n 워크플로우 JSON (ID: 3TXzJ9AADTf9oNL6, 매일 09:30 KST 운영 중)
+    정부지원사업_월간리포트.json                   # n8n 워크플로우 JSON (ID: oeIOcnDYpSDmbkKp, 매월 1일 10:00 KST 운영 중)
   tasks/                                          # 태스크별 상세 작업 문서 (생성 예정)
     GS-001-server-check.md
     GS-002-env-variables.md
@@ -787,3 +790,4 @@ govt-support/
 | 2026-02-25 | Phase 0 전체 완료 (GS-001~006) + Phase 1 핵심 완료 (GS-101~105) + GS-201 E2E 테스트 완료 | n8n-workflow-builder |
 | 2026-02-25 | Phase 2 완료 (GS-202 중복검증 + GS-203 오류처리) + Phase 3 GS-301 스케줄 활성화 (매일 09:00 KST) | n8n-workflow-builder |
 | 2026-02-25 | GS-106 완료 (일일 요약 알림 4개 노드 추가 — 신규없음 체크/Telegram + 일일 요약 집계/Telegram, 수동 실행 검증 완료) + GS-302 모니터링 체크리스트 작성 | n8n-workflow-builder |
+| 2026-02-25 | Phase 4: GS-403 완료(마감임박 재알림 워크플로우 ID:3TXzJ9AADTf9oNL6, Airtable 기간만료 5건 자동 업데이트 포함) + GS-404 완료(월간리포트 워크플로우 ID:oeIOcnDYpSDmbkKp, 매월 1일 10:00 KST 자동실행) + GS-401/402 건너뜀(API 카테고리 불일치: 고용24=채용정보, 소진공=기업마당 중복) | n8n-workflow-builder |
