@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>강사회원 등업 신청 — Pressco21</title>
+
+  <!-- Pretendard 폰트 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+
+  <style>
+    /* ─────────────────────────────────────────
+       CSS 변수 (디자인 토큰)
+    ───────────────────────────────────────── */
+    :root {
+      --color-white:          #FFFFFF;
+      --color-bg-section:     #F8F8F8;
+      --color-green-primary:  #637561;
+      --color-green-dark:     #425B51;
+      --color-green-light:    #B7C9AD;
+      --color-border:         #DDDDDD;
+      --color-text-main:      #121212;
+      --color-text-sub:       #3B3B3B;
+      --color-required:       #637561;
+      --color-error:          #C0392B;
+      --color-error-bg:       #FFF5F5;
+
+      --radius-input:         2px;
+      --radius-none:          0px;
+
+      --font-family:          'Pretendard', -apple-system, BlinkMacSystemFont,
+                              'Segoe UI', sans-serif;
+    }
+
+    /* ─────────────────────────────────────────
+       리셋 & 기본
+    ───────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--color-bg-section);
+      color: var(--color-text-main);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 48px 16px 80px;
+    }
+
+    /* ─────────────────────────────────────────
+       폼 래퍼 카드
+    ───────────────────────────────────────── */
+    .form-wrapper {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+    }
+
+    /* ─────────────────────────────────────────
+       헤더 영역
+    ───────────────────────────────────────── */
+    .form-header {
+      padding: 40px 40px 32px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .brand-name {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-green-primary);
+      margin-bottom: 14px;
+    }
+
+    .form-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-text-main);
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    /* ─────────────────────────────────────────
+       폼 바디
+    ───────────────────────────────────────── */
+    .form-body {
+      padding: 36px 40px 40px;
+    }
+
+    /* ─────────────────────────────────────────
+       안내문 박스
+    ───────────────────────────────────────── */
+    .notice-box {
+      background: var(--color-bg-section);
+      border-left: 3px solid var(--color-green-primary);
+      padding: 18px 20px;
+      margin-bottom: 36px;
+    }
+
+    .notice-box ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .notice-box li {
+      font-size: 13px;
+      color: var(--color-text-sub);
+      line-height: 1.55;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    /* 체크 아이콘 */
+    .notice-box li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--color-green-primary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* ─────────────────────────────────────────
+       필드 그룹
+    ───────────────────────────────────────── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .field-item {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    /* 라벨 */
+    .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-main);
+      letter-spacing: 0.01em;
+    }
+
+    .field-label .required-mark {
+      color: var(--color-required);
+      margin-left: 3px;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    /* 도움말 텍스트 */
+    .field-hint {
+      font-size: 12px;
+      color: var(--color-text-sub);
+      line-height: 1.5;
+      margin-top: -3px;
+    }
+
+    /* ─────────────────────────────────────────
+       인풋 공통
+    ───────────────────────────────────────── */
+    .field-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      font-family: var(--font-family);
+      font-size: 14px;
+      color: var(--color-text-main);
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-input);
+      outline: none;
+      transition: border-color 0.15s ease;
+      -webkit-appearance: none;
+    }
+
+    .field-input::placeholder {
+      color: #AAAAAA;
+    }
+
+    .field-input:focus {
+      border-color: var(--color-green-primary);
+    }
+
+    /* 에러 상태 인풋 */
+    .field-input.is-error {
+      border-color: var(--color-error);
+      background: var(--color-error-bg);
+    }
+
+    /* 에러 메시지 */
+    .field-error {
+      font-size: 12px;
+      color: var(--color-error);
+      display: none;
+      margin-top: -3px;
+    }
+
+    .field-error.is-visible {
+      display: block;
+    }
+
+    /* ─────────────────────────────────────────
+       파일 업로드 영역
+    ───────────────────────────────────────── */
+    .file-upload-area {
+      border: 1.5px dashed var(--color-border);
+      border-radius: var(--radius-input);
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+      position: relative;
+    }
+
+    .file-upload-area:hover,
+    .file-upload-area.drag-over {
+      border-color: var(--color-green-primary);
+      background: rgba(99, 117, 97, 0.04);
+    }
+
+    /* 숨겨진 실제 file input */
+    .file-upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      font-size: 0;
+    }
+
+    .file-upload-icon {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-green-primary);
+    }
+
+    .file-upload-icon svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .file-upload-label {
+      font-size: 13px;
+      color: var(--color-text-sub);
+      line-height: 1.6;
+    }
+
+    .file-upload-label strong {
+      color: var(--color-green-primary);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .file-upload-label .file-types {
+      display: block;
+      font-size: 11px;
+      color: #AAAAAA;
+      margin-top: 4px;
+    }
+
+    /* ─────────────────────────────────────────
+       선택된 파일 목록
+    ───────────────────────────────────────── */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .file-list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--color-bg-section);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-input);
+    }
+
+    .file-list-icon {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: var(--color-green-primary);
+    }
+
+    .file-list-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .file-list-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--color-text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-list-size {
+      flex-shrink: 0;
+      font-size: 11px;
+      color: #AAAAAA;
+    }
+
+    /* 파일 삭제 버튼 */
+    .file-remove-btn {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #AAAAAA;
+      padding: 0;
+      transition: color 0.15s ease;
+    }
+
+    .file-remove-btn:hover {
+      color: var(--color-error);
+    }
+
+    .file-remove-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ─────────────────────────────────────────
+       제출 버튼
+    ───────────────────────────────────────── */
+    .submit-btn {
+      width: 100%;
+      height: 52px;
+      margin-top: 36px;
+      background: var(--color-green-primary);
+      color: var(--color-white);
+      border: none;
+      border-radius: var(--radius-none);
+      font-family: var(--font-family);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: var(--color-green-dark);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* 로딩 스피너 */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .submit-btn.is-loading .spinner {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ─────────────────────────────────────────
+       글로벌 에러 배너
+    ───────────────────────────────────────── */
+    .global-error {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: var(--color-error-bg);
+      border: 1px solid #F5C6C6;
+      border-radius: var(--radius-input);
+      font-size: 13px;
+      color: var(--color-error);
+      display: none;
+      line-height: 1.5;
+    }
+
+    .global-error.is-visible {
+      display: block;
+    }
+
+    /* ─────────────────────────────────────────
+       성공 화면
+    ───────────────────────────────────────── */
+    .success-screen {
+      display: none;
+      padding: 64px 40px;
+      text-align: center;
+    }
+
+    .success-screen.is-visible {
+      display: block;
+    }
+
+    .success-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(183, 201, 173, 0.35);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+
+    .success-icon svg {
+      width: 28px;
+      height: 28px;
+      color: var(--color-green-primary);
+    }
+
+    .success-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-text-main);
+      letter-spacing: -0.01em;
+      margin-bottom: 10px;
+    }
+
+    .success-desc {
+      font-size: 14px;
+      color: var(--color-text-sub);
+      line-height: 1.7;
+    }
+
+    /* ─────────────────────────────────────────
+       반응형 (max-width: 640px)
+    ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      body {
+        padding: 24px 0 60px;
+        background: var(--color-white);
+      }
+
+      .form-wrapper {
+        border-left: none;
+        border-right: none;
+        border-top: none;
+      }
+
+      .form-header {
+        padding: 28px 20px 24px;
+      }
+
+      .form-body {
+        padding: 28px 20px 32px;
+      }
+
+      .success-screen {
+        padding: 48px 20px;
+      }
+
+      .form-title {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ───────────────────────────────────────
+       폼 래퍼
+  ─────────────────────────────────────────── -->
+  <div class="form-wrapper" id="formWrapper">
+
+    <!-- 헤더 -->
+    <div class="form-header">
+      <p class="brand-name">Forever Love</p>
+      <h1 class="form-title">프레스코21 강사회원<br>등업 신청서</h1>
+    </div>
+
+    <!-- 성공 화면 (기본 숨김) -->
+    <div class="success-screen" id="successScreen" aria-live="polite">
+      <div class="success-icon" aria-hidden="true">
+        <!-- 체크 아이콘 -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <p class="success-title" id="successTitle"></p>
+      <p class="success-desc" id="successDesc"></p>
+    </div>
+
+    <!-- 폼 바디 -->
+    <div class="form-body" id="formBody">
+
+      <!-- 안내문 박스 -->
+      <div class="notice-box" role="note" aria-label="신청 안내사항">
+        <ul>
+          <li>필수 제출 서류: 원예관련 사업자 등록증 혹은 자격증.</li>
+          <li>추후 협회별 고도화된 혜택 제공 및 대응을 위해 소속 협회는 모두 적어주시는게 고객님께 최적의 혜택을 드릴 수 있습니다.</li>
+          <li>가능한 많은 증빙서류를 첨부해주세요.</li>
+          <li>회원가입을 먼저 진행하시고 해당 내역으로 기재 부탁드립니다.</li>
+        </ul>
+      </div>
+
+      <!-- 신청 폼 -->
+      <form id="applyForm" novalidate>
+        <div class="field-group">
+
+          <!-- 1. 성함 -->
+          <div class="field-item">
+            <label class="field-label" for="fieldName">
+              성함
+              <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="text"
+              id="fieldName"
+              name="name"
+              class="field-input"
+              placeholder="성함을 입력해주세요"
+              required
+              autocomplete="name"
+              aria-required="true"
+              aria-describedby="fieldNameError"
+            />
+            <span class="field-error" id="fieldNameError" role="alert">
+              성함을 입력해주세요.
+            </span>
+          </div>
+
+          <!-- 2. 자사몰 ID -->
+          <div class="field-item">
+            <label class="field-label" for="fieldMallId">
+              자사몰 ID
+              <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="text"
+              id="fieldMallId"
+              name="mallId"
+              class="field-input"
+              placeholder="회원 로그인 ID"
+              required
+              autocomplete="username"
+              aria-required="true"
+              aria-describedby="fieldMallIdHint fieldMallIdError"
+            />
+            <p class="field-hint" id="fieldMallIdHint">
+              회원 로그인 할 때 ID를 오타 없이 입력해주세요. 잘못 입력시 등업이 되지 않습니다.
+            </p>
+            <span class="field-error" id="fieldMallIdError" role="alert">
+              자사몰 ID를 입력해주세요.
+            </span>
+          </div>
+
+          <!-- 3. 연락처 -->
+          <div class="field-item">
+            <label class="field-label" for="fieldPhone">
+              연락처
+              <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="tel"
+              id="fieldPhone"
+              name="phone"
+              class="field-input"
+              placeholder="010-0000-0000"
+              required
+              autocomplete="tel"
+              aria-required="true"
+              aria-describedby="fieldPhoneError"
+            />
+            <span class="field-error" id="fieldPhoneError" role="alert">
+              연락처를 입력해주세요.
+            </span>
+          </div>
+
+          <!-- 4. 이메일 주소 -->
+          <div class="field-item">
+            <label class="field-label" for="fieldEmail">
+              이메일 주소
+            </label>
+            <input
+              type="email"
+              id="fieldEmail"
+              name="email"
+              class="field-input"
+              placeholder="example@email.com"
+              autocomplete="email"
+              aria-describedby="fieldEmailError"
+            />
+            <span class="field-error" id="fieldEmailError" role="alert">
+              올바른 이메일 형식을 입력해주세요.
+            </span>
+          </div>
+
+          <!-- 5. 소속 협회 -->
+          <div class="field-item">
+            <label class="field-label" for="fieldAssociation">
+              소속 협회
+            </label>
+            <input
+              type="text"
+              id="fieldAssociation"
+              name="association"
+              class="field-input"
+              placeholder="소속 협회명을 입력해주세요 (복수 기재 가능)"
+            />
+          </div>
+
+          <!-- 6. 증빙서류 첨부 -->
+          <div class="field-item">
+            <label class="field-label">
+              증빙서류 첨부
+            </label>
+
+            <!-- 드래그앤드롭 업로드 영역 -->
+            <div
+              class="file-upload-area"
+              id="fileDropArea"
+              role="button"
+              tabindex="0"
+              aria-label="파일을 드래그하거나 클릭하여 업로드"
+            >
+              <!-- 실제 file input (투명, 영역 전체) -->
+              <input
+                type="file"
+                id="fieldFiles"
+                name="files"
+                multiple
+                accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.pdf,.doc,.docx,.hwp"
+                aria-label="증빙서류 파일 선택"
+              />
+
+              <!-- 아이콘 -->
+              <div class="file-upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+
+              <!-- 업로드 안내 텍스트 -->
+              <p class="file-upload-label">
+                파일을 드래그하거나 <strong>클릭하여 선택</strong>하세요
+                <span class="file-types">JPG · PNG · WEBP · HEIC · GIF · PDF · DOC · DOCX · HWP 허용 · 여러 파일 동시 선택 가능</span>
+              </p>
+            </div>
+
+            <!-- 선택된 파일 목록 -->
+            <ul class="file-list" id="fileList" aria-label="선택된 파일 목록"></ul>
+          </div>
+
+        </div><!-- /.field-group -->
+
+        <!-- 제출 버튼 -->
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="submitBtnText">신청하기</span>
+        </button>
+
+        <!-- 글로벌 에러 배너 -->
+        <div class="global-error" id="globalError" role="alert"></div>
+
+      </form>
+    </div><!-- /.form-body -->
+
+  </div><!-- /.form-wrapper -->
+
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════
+       강사회원 등업 신청 폼 — 전체 로직
+       파일: instructor-apply.html
+       작성일: 2026-02-26
+
+       ✏️  수정이 필요할 때는 아래 SETTINGS 블록만 변경하세요.
+           코드 지식 없이도 텍스트/파일 형식 등을 바꿀 수 있습니다.
+    ═══════════════════════════════════════════════════════════ */
+    (function () {
+      'use strict';
+
+      /* ================================================================
+         ✏️  SETTINGS — 여기만 수정하면 됩니다
+         ================================================================
+
+         [1] NocoDB 연결 정보 (변경 금지 — 서버 마이그레이션 시만 수정)
+         ---------------------------------------------------------------- */
+      var NOCODB_URL = 'https://nocodb.pressco21.com';   // NocoDB 서버 주소
+      var API_TOKEN  = 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl'; // API 토큰
+      var TABLE_ID   = 'mcafm2yyeaupdnt';                // 강사공간 테이블 ID
+
+      /* [2] 허용 파일 형식 (MIME 타입 목록)
+             추가/제거 원하는 형식이 있으면 이 배열을 수정하세요.
+         ---------------------------------------------------------------- */
+      var ALLOWED_MIME_TYPES = [
+        'image/jpeg',           // JPG / JPEG
+        'image/png',            // PNG
+        'image/gif',            // GIF
+        'image/webp',           // WEBP
+        'image/heic',           // HEIC (아이폰 사진)
+        'image/heif',           // HEIF (아이폰 사진)
+        'application/pdf',      // PDF
+        'application/msword',   // DOC (구형 Word)
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+        'application/x-hwp',   // HWP (한글)
+        'application/haansofthwp' // HWP (한글, 일부 브라우저)
+      ];
+
+      /* [3] 성공 완료 메시지 (제출 후 표시되는 텍스트)
+         ---------------------------------------------------------------- */
+      var SUCCESS_TITLE = '신청이 완료되었습니다.';
+      var SUCCESS_DESC  = '검토 후 순차적으로 연락드리겠습니다.';
+
+      /* ================================================================
+         여기부터는 로직 영역입니다 — 수정하지 마세요
+         ================================================================ */
+
+      /* ─── DOM 참조 ─────────────────────────────────────────── */
+      var form         = document.getElementById('applyForm');
+      var formBody     = document.getElementById('formBody');
+      var successScreen = document.getElementById('successScreen');
+      var submitBtn    = document.getElementById('submitBtn');
+      var submitBtnText = document.getElementById('submitBtnText');
+      var globalError  = document.getElementById('globalError');
+      var fileDropArea = document.getElementById('fileDropArea');
+      var fileInput    = document.getElementById('fieldFiles');
+      var fileListEl   = document.getElementById('fileList');
+
+      /* ─── 선택된 파일 목록 상태 ─────────────────────────────── */
+      var selectedFiles = []; // File 객체 배열
+
+      /* ─── 유틸: 파일 크기 포맷 ─────────────────────────────── */
+      function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      /* ─── 유틸: 오늘 날짜 YYYY-MM-DD ────────────────────────── */
+      function getTodayDate() {
+        var d = new Date();
+        var yyyy = d.getFullYear();
+        var mm   = String(d.getMonth() + 1).padStart(2, '0');
+        var dd   = String(d.getDate()).padStart(2, '0');
+        return yyyy + '-' + mm + '-' + dd;
+      }
+
+      /* ─── 파일 목록 UI 렌더링 ───────────────────────────────── */
+      function renderFileList() {
+        fileListEl.innerHTML = '';
+
+        if (selectedFiles.length === 0) return;
+
+        selectedFiles.forEach(function (file, index) {
+          var li = document.createElement('li');
+          li.className = 'file-list-item';
+
+          // 파일 아이콘 (PDF vs 이미지 구분)
+          var isPdf = file.type === 'application/pdf';
+          var iconSvg = isPdf
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="9" x2="11" y2="9"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="0"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+
+          li.innerHTML =
+            '<span class="file-list-icon" aria-hidden="true">' + iconSvg + '</span>' +
+            '<span class="file-list-name" title="' + file.name + '">' + file.name + '</span>' +
+            '<span class="file-list-size">' + formatFileSize(file.size) + '</span>' +
+            '<button type="button" class="file-remove-btn" aria-label="' + file.name + ' 삭제" data-index="' + index + '">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">' +
+                '<line x1="18" y1="6" x2="6" y2="18"/>' +
+                '<line x1="6" y1="6" x2="18" y2="18"/>' +
+              '</svg>' +
+            '</button>';
+
+          fileListEl.appendChild(li);
+        });
+
+        // 삭제 버튼 이벤트 위임 처리
+        fileListEl.querySelectorAll('.file-remove-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var idx = parseInt(btn.getAttribute('data-index'), 10);
+            selectedFiles.splice(idx, 1);
+            renderFileList();
+          });
+        });
+      }
+
+      /* ─── 파일 추가 (중복 파일명 제외) ─────────────────────── */
+      function addFiles(fileArray) {
+        var existingNames = selectedFiles.map(function (f) { return f.name; });
+        Array.prototype.forEach.call(fileArray, function (file) {
+          if (existingNames.indexOf(file.name) === -1) {
+            selectedFiles.push(file);
+          }
+        });
+        renderFileList();
+        // input 초기화 (같은 파일 재선택 허용)
+        fileInput.value = '';
+      }
+
+      /* ─── 파일 input change 이벤트 ─────────────────────────── */
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files.length > 0) {
+          addFiles(fileInput.files);
+        }
+      });
+
+      /* ─── 드래그앤드롭 이벤트 ──────────────────────────────── */
+      fileDropArea.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        fileDropArea.classList.add('drag-over');
+      });
+
+      fileDropArea.addEventListener('dragleave', function () {
+        fileDropArea.classList.remove('drag-over');
+      });
+
+      fileDropArea.addEventListener('drop', function (e) {
+        e.preventDefault();
+        fileDropArea.classList.remove('drag-over');
+        var files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          var filtered = Array.prototype.filter.call(files, function (f) {
+            return ALLOWED_MIME_TYPES.indexOf(f.type) !== -1;
+          });
+          if (filtered.length > 0) addFiles(filtered);
+        }
+      });
+
+      /* ─── 키보드로 파일 영역 열기 (접근성) ─────────────────── */
+      fileDropArea.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+
+      /* ─── 인라인 에러 표시/숨김 헬퍼 ──────────────────────── */
+      function showFieldError(inputId, errorId) {
+        var input = document.getElementById(inputId);
+        var errorEl = document.getElementById(errorId);
+        if (input) input.classList.add('is-error');
+        if (errorEl) errorEl.classList.add('is-visible');
+      }
+
+      function clearFieldError(inputId, errorId) {
+        var input = document.getElementById(inputId);
+        var errorEl = document.getElementById(errorId);
+        if (input) input.classList.remove('is-error');
+        if (errorEl) errorEl.classList.remove('is-visible');
+      }
+
+      /* ─── 실시간 에러 해제 (입력 시 즉시 에러 제거) ─────────── */
+      ['fieldName', 'fieldMallId', 'fieldPhone', 'fieldEmail'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var errorId = id + 'Error';
+        el.addEventListener('input', function () {
+          clearFieldError(id, errorId);
+        });
+      });
+
+      /* ─── 폼 유효성 검사 ────────────────────────────────────── */
+      function validateForm() {
+        var isValid = true;
+
+        // 성함 필수
+        var name = document.getElementById('fieldName').value.trim();
+        if (!name) {
+          showFieldError('fieldName', 'fieldNameError');
+          isValid = false;
+        } else {
+          clearFieldError('fieldName', 'fieldNameError');
+        }
+
+        // 자사몰 ID 필수
+        var mallId = document.getElementById('fieldMallId').value.trim();
+        if (!mallId) {
+          showFieldError('fieldMallId', 'fieldMallIdError');
+          isValid = false;
+        } else {
+          clearFieldError('fieldMallId', 'fieldMallIdError');
+        }
+
+        // 연락처 필수
+        var phone = document.getElementById('fieldPhone').value.trim();
+        if (!phone) {
+          showFieldError('fieldPhone', 'fieldPhoneError');
+          isValid = false;
+        } else {
+          clearFieldError('fieldPhone', 'fieldPhoneError');
+        }
+
+        // 이메일 형식 (선택이지만 입력 시 형식 확인)
+        var email = document.getElementById('fieldEmail').value.trim();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showFieldError('fieldEmail', 'fieldEmailError');
+          isValid = false;
+        } else {
+          clearFieldError('fieldEmail', 'fieldEmailError');
+        }
+
+        return isValid;
+      }
+
+      /* ─── 로딩 상태 토글 ────────────────────────────────────── */
+      function setLoading(isLoading) {
+        submitBtn.disabled = isLoading;
+        submitBtnText.textContent = isLoading ? '제출 중...' : '신청하기';
+        submitBtn.classList.toggle('is-loading', isLoading);
+      }
+
+      /* ─── 글로벌 에러 표시 ──────────────────────────────────── */
+      function showGlobalError(message) {
+        globalError.textContent = message;
+        globalError.classList.add('is-visible');
+        globalError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function clearGlobalError() {
+        globalError.textContent = '';
+        globalError.classList.remove('is-visible');
+      }
+
+      /* ─── NocoDB 파일 업로드 ─────────────────────────────────
+         POST /api/v1/storage/upload?path=nc/{TABLE_ID}/증빙서류 첨부
+         FormData에 files[] 배열로 전송
+         응답: [{url, path, title, mimetype, size}, ...]
+      ────────────────────────────────────────────────────────── */
+      function uploadFiles(files) {
+        return new Promise(function (resolve, reject) {
+          if (!files || files.length === 0) {
+            resolve([]);
+            return;
+          }
+
+          var formData = new FormData();
+          files.forEach(function (file) {
+            formData.append('files[]', file);
+          });
+
+          var uploadPath = encodeURIComponent(
+            'nc/' + TABLE_ID + '/증빙서류 첨부'
+          );
+
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', NOCODB_URL + '/api/v1/db/storage/upload?path=' + uploadPath);
+          xhr.setRequestHeader('xc-token', API_TOKEN);
+
+          xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              var response;
+              try {
+                response = JSON.parse(xhr.responseText);
+              } catch (e) {
+                reject(new Error('파일 업로드 응답 파싱 실패'));
+                return;
+              }
+              // 배열 또는 단일 객체 모두 처리
+              resolve(Array.isArray(response) ? response : [response]);
+            } else {
+              reject(new Error('파일 업로드 실패 (상태코드: ' + xhr.status + ')'));
+            }
+          };
+
+          xhr.onerror = function () {
+            reject(new Error('네트워크 오류: 파일 업로드에 실패했습니다.'));
+          };
+
+          xhr.send(formData);
+        });
+      }
+
+      /* ─── NocoDB 레코드 생성 ─────────────────────────────────
+         POST /api/v2/tables/{TABLE_ID}/records
+      ────────────────────────────────────────────────────────── */
+      function createRecord(data) {
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', NOCODB_URL + '/api/v2/tables/' + TABLE_ID + '/records');
+          xhr.setRequestHeader('xc-token', API_TOKEN);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+
+          xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              var response;
+              try {
+                response = JSON.parse(xhr.responseText);
+              } catch (e) {
+                reject(new Error('레코드 생성 응답 파싱 실패'));
+                return;
+              }
+              resolve(response);
+            } else {
+              var errMsg = '레코드 생성 실패 (상태코드: ' + xhr.status + ')';
+              try {
+                var errBody = JSON.parse(xhr.responseText);
+                if (errBody && errBody.msg) errMsg = errBody.msg;
+              } catch (e) { /* 무시 */ }
+              reject(new Error(errMsg));
+            }
+          };
+
+          xhr.onerror = function () {
+            reject(new Error('네트워크 오류: 서버에 연결할 수 없습니다.'));
+          };
+
+          xhr.send(JSON.stringify(data));
+        });
+      }
+
+      /* ─── 성공 화면 표시 ────────────────────────────────────── */
+      function showSuccess() {
+        document.getElementById('successTitle').textContent = SUCCESS_TITLE;
+        document.getElementById('successDesc').textContent  = SUCCESS_DESC;
+        formBody.style.display = 'none';
+        successScreen.classList.add('is-visible');
+        successScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      /* ─── 폼 제출 핸들러 ────────────────────────────────────── */
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        clearGlobalError();
+
+        // 1. 유효성 검사
+        if (!validateForm()) {
+          // 첫 번째 에러 필드로 스크롤
+          var firstError = form.querySelector('.is-error');
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstError.focus();
+          }
+          return;
+        }
+
+        // 2. 폼 데이터 수집
+        var nameVal        = document.getElementById('fieldName').value.trim();
+        var mallIdVal      = document.getElementById('fieldMallId').value.trim();
+        var phoneVal       = document.getElementById('fieldPhone').value.trim();
+        var emailVal       = document.getElementById('fieldEmail').value.trim();
+        var associationVal = document.getElementById('fieldAssociation').value.trim();
+
+        // 3. 로딩 시작
+        setLoading(true);
+
+        // 4. 파일 업로드 → 레코드 생성 (순차 처리)
+        uploadFiles(selectedFiles)
+          .then(function (attachments) {
+            var recordData = {
+              '성함':         nameVal,
+              '자사몰 ID':    mallIdVal,
+              '연락처':       phoneVal,
+              '신청 일시':    getTodayDate()
+            };
+
+            if (emailVal)       recordData['이메일 주소'] = emailVal;
+            if (associationVal) recordData['소속 협회']   = associationVal;
+            if (attachments && attachments.length > 0) {
+              recordData['증빙서류 첨부'] = attachments;
+            }
+
+            return createRecord(recordData);
+          })
+          .then(function () {
+            // 5. 성공 처리
+            setLoading(false);
+            showSuccess();
+          })
+          .catch(function (err) {
+            // 6. 에러 처리
+            setLoading(false);
+            showGlobalError(
+              '제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n(' +
+              (err && err.message ? err.message : '알 수 없는 오류') + ')'
+            );
+          });
+      });
+
+    }());
+  </script>
+
+</body>
+</html>
