@@ -148,6 +148,28 @@
       "typeVersion": 1.2,
       "position": [1300, 500],
       "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $('반려사유+이메일 있는가').item.json.nocodb_id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\"n8n_반려알림\": true}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "xc-token", "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "fa003-n11",
+      "name": "NocoDB 보류 처리 완료",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 500]
     }
   ],
   "connections": {
@@ -157,7 +179,8 @@
     "처리할 건 있는가": {"main": [[{"node": "반려사유+이메일 있는가", "type": "main", "index": 0}], [{"node": "처리 없음", "type": "main", "index": 0}]]},
     "반려사유+이메일 있는가": {"main": [[{"node": "반려 이메일 발송", "type": "main", "index": 0}], [{"node": "텔레그램 보류 알림", "type": "main", "index": 0}]]},
     "반려 이메일 발송": {"main": [[{"node": "NocoDB 반려알림 표시", "type": "main", "index": 0}]]},
-    "NocoDB 반려알림 표시": {"main": [[{"node": "텔레그램 발송 완료 알림", "type": "main", "index": 0}]]}
+    "NocoDB 반려알림 표시": {"main": [[{"node": "텔레그램 발송 완료 알림", "type": "main", "index": 0}]]},
+    "텔레그램 보류 알림": {"main": [[{"node": "NocoDB 보류 처리 완료", "type": "main", "index": 0}]]}
   },
   "settings": {
     "executionOrder": "v1"
