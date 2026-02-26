@@ -1,5 +1,7 @@
 {
+  "id": "jaTfiQuY35DjgrxN",
   "name": "FA-001: 강사회원 등급 자동 변경 v2.0",
+  "active": true,
   "nodes": [
     {
       "parameters": {
@@ -39,9 +41,7 @@
     },
     {
       "parameters": {
-        "rule": {
-          "interval": [{"field": "minutes", "minutesInterval": 5}]
-        }
+        "rule": {"interval": [{"field": "minutes", "minutesInterval": 5}]}
       },
       "id": "fa001-n01",
       "name": "5분 스케줄",
@@ -307,19 +307,12 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [3720, 100],
-      "credentials": {
-        "telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}
-      }
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     },
     {
       "parameters": {
         "conditions": {
-          "string": [
-            {
-              "value1": "={{ $('그룹 변경 응답 파싱').item.json.email }}",
-              "operation": "isNotEmpty"
-            }
-          ]
+          "string": [{"value1": "={{ $('그룹 변경 응답 파싱').item.json.email }}", "operation": "isNotEmpty"}]
         }
       },
       "id": "fa001-n20-check",
@@ -342,9 +335,7 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [4160, 0],
-      "credentials": {
-        "smtp": {"id": "31jTm9BU7iyj0pVx", "name": "PRESSCO21-SMTP-Naver"}
-      }
+      "credentials": {"smtp": {"id": "31jTm9BU7iyj0pVx", "name": "PRESSCO21-SMTP-Naver"}}
     },
     {
       "parameters": {
@@ -368,9 +359,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [3060, 480],
-      "credentials": {
-        "telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}
-      }
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     },
     {
       "parameters": {
@@ -396,95 +385,28 @@
     }
   ],
   "connections": {
-    "5분 스케줄": {
-      "main": [[{"node": "강사회원 그룹코드 조회", "type": "main", "index": 0}]]
-    },
-    "강사회원 그룹코드 조회": {
-      "main": [[{"node": "그룹코드 파싱", "type": "main", "index": 0}]]
-    },
-    "그룹코드 파싱": {
-      "main": [[{"node": "NocoDB 미처리 조회", "type": "main", "index": 0}]]
-    },
-    "NocoDB 미처리 조회": {
-      "main": [[{"node": "레코드 분리", "type": "main", "index": 0}]]
-    },
-    "레코드 분리": {
-      "main": [[{"node": "처리할 건 있는가", "type": "main", "index": 0}]]
-    },
-    "처리할 건 있는가": {
-      "main": [
-        [{"node": "식별 정보 추출", "type": "main", "index": 0}],
-        [{"node": "처리 없음", "type": "main", "index": 0}]
-      ]
-    },
-    "식별 정보 추출": {
-      "main": [[{"node": "자사몰 ID 있는가", "type": "main", "index": 0}]]
-    },
-    "자사몰 ID 있는가": {
-      "main": [
-        [{"node": "메이크샵 회원 조회 (ID)", "type": "main", "index": 0}],
-        [{"node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0}]
-      ]
-    },
-    "메이크샵 회원 조회 (ID)": {
-      "main": [[{"node": "조회 응답 파싱 (ID)", "type": "main", "index": 0}]]
-    },
-    "조회 응답 파싱 (ID)": {
-      "main": [[{"node": "회원 존재하는가", "type": "main", "index": 0}]]
-    },
-    "회원 존재하는가": {
-      "main": [
-        [{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}],
-        [{"node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0}]
-      ]
-    },
-    "메이크샵 회원 조회 (연락처)": {
-      "main": [[{"node": "연락처 조회 파싱 + 성함 확인", "type": "main", "index": 0}]]
-    },
-    "연락처 조회 파싱 + 성함 확인": {
-      "main": [[{"node": "연락처+성함 일치하는가", "type": "main", "index": 0}]]
-    },
-    "연락처+성함 일치하는가": {
-      "main": [
-        [{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}],
-        [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]
-      ]
-    },
-    "메이크샵 그룹 변경": {
-      "main": [[{"node": "그룹 변경 응답 파싱", "type": "main", "index": 0}]]
-    },
-    "그룹 변경 응답 파싱": {
-      "main": [[{"node": "그룹 변경 성공했는가", "type": "main", "index": 0}]]
-    },
-    "그룹 변경 성공했는가": {
-      "main": [
-        [{"node": "NocoDB 처리완료 기록", "type": "main", "index": 0}],
-        [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]
-      ]
-    },
-    "NocoDB 처리완료 기록": {
-      "main": [[{"node": "텔레그램 성공 알림", "type": "main", "index": 0}]]
-    },
-    "텔레그램 성공 알림": {
-      "main": [[{"node": "이메일 있는가", "type": "main", "index": 0}]]
-    },
-    "이메일 있는가": {
-      "main": [
-        [{"node": "승인 축하 이메일 발송", "type": "main", "index": 0}],
-        []
-      ]
-    },
-    "수동 처리 메시지 조립": {
-      "main": [
-        [
-          {"node": "텔레그램 수동 처리 요청", "type": "main", "index": 0},
-          {"node": "NocoDB 수동처리 기록", "type": "main", "index": 0}
-        ]
-      ]
-    },
-    "텔레그램 수동 처리 요청": {
-      "main": [[]]
-    }
+    "5분 스케줄": {"main": [[{"node": "강사회원 그룹코드 조회", "type": "main", "index": 0}]]},
+    "강사회원 그룹코드 조회": {"main": [[{"node": "그룹코드 파싱", "type": "main", "index": 0}]]},
+    "그룹코드 파싱": {"main": [[{"node": "NocoDB 미처리 조회", "type": "main", "index": 0}]]},
+    "NocoDB 미처리 조회": {"main": [[{"node": "레코드 분리", "type": "main", "index": 0}]]},
+    "레코드 분리": {"main": [[{"node": "처리할 건 있는가", "type": "main", "index": 0}]]},
+    "처리할 건 있는가": {"main": [[{"node": "식별 정보 추출", "type": "main", "index": 0}], [{"node": "처리 없음", "type": "main", "index": 0}]]},
+    "식별 정보 추출": {"main": [[{"node": "자사몰 ID 있는가", "type": "main", "index": 0}]]},
+    "자사몰 ID 있는가": {"main": [[{"node": "메이크샵 회원 조회 (ID)", "type": "main", "index": 0}], [{"node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0}]]},
+    "메이크샵 회원 조회 (ID)": {"main": [[{"node": "조회 응답 파싱 (ID)", "type": "main", "index": 0}]]},
+    "조회 응답 파싱 (ID)": {"main": [[{"node": "회원 존재하는가", "type": "main", "index": 0}]]},
+    "회원 존재하는가": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}], [{"node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0}]]},
+    "메이크샵 회원 조회 (연락처)": {"main": [[{"node": "연락처 조회 파싱 + 성함 확인", "type": "main", "index": 0}]]},
+    "연락처 조회 파싱 + 성함 확인": {"main": [[{"node": "연락처+성함 일치하는가", "type": "main", "index": 0}]]},
+    "연락처+성함 일치하는가": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},
+    "메이크샵 그룹 변경": {"main": [[{"node": "그룹 변경 응답 파싱", "type": "main", "index": 0}]]},
+    "그룹 변경 응답 파싱": {"main": [[{"node": "그룹 변경 성공했는가", "type": "main", "index": 0}]]},
+    "그룹 변경 성공했는가": {"main": [[{"node": "NocoDB 처리완료 기록", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},
+    "NocoDB 처리완료 기록": {"main": [[{"node": "텔레그램 성공 알림", "type": "main", "index": 0}]]},
+    "텔레그램 성공 알림": {"main": [[{"node": "이메일 있는가", "type": "main", "index": 0}]]},
+    "이메일 있는가": {"main": [[{"node": "승인 축하 이메일 발송", "type": "main", "index": 0}], []]},
+    "수동 처리 메시지 조립": {"main": [[{"node": "텔레그램 수동 처리 요청", "type": "main", "index": 0}, {"node": "NocoDB 수동처리 기록", "type": "main", "index": 0}]]},
+    "텔레그램 수동 처리 요청": {"main": [[]]}
   },
   "settings": {
     "executionOrder": "v1"

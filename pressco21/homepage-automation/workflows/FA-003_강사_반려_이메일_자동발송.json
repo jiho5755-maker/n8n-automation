@@ -1,11 +1,11 @@
 {
+  "id": "Ks4JvBC06cEj6b8b",
   "name": "FA-003: 강사 반려 이메일 자동 발송",
+  "active": true,
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [{"field": "minutes", "minutesInterval": 5}]
-        }
+        "rule": {"interval": [{"field": "minutes", "minutesInterval": 5}]}
       },
       "id": "fa003-n01",
       "name": "5분 스케줄",
@@ -40,7 +40,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// NocoDB 응답 list를 개별 레코드 아이템으로 분리\nconst records = $input.first().json.list || [];\nreturn records.map(function(r) { return { json: r }; });",
+        "jsCode": "// NocoDB 응답 list를 개별 레코드로 분리, 영문 키로 정규화\nconst records = $input.first().json.list || [];\nreturn records.map(function(r) {\n  return {\n    json: {\n      nocodb_id: String(r['Id']),\n      name: String(r['성함'] || ''),\n      mobile: String(r['연락처'] || ''),\n      jasamolId: String(r['자사몰 ID'] || ''),\n      email: String(r['이메일 주소'] || ''),\n      status: String(r['진행 상태'] || ''),\n      rejectionReason: String(r['반려 사유'] || '')\n    }\n  };\n});",
         "mode": "runOnceForAllItems"
       },
       "id": "fa003-n03",
@@ -52,9 +52,7 @@
     {
       "parameters": {
         "conditions": {
-          "string": [
-            {"value1": "={{ $json.Id }}", "operation": "isNotEmpty"}
-          ]
+          "string": [{"value1": "={{ $json.nocodb_id }}", "operation": "isNotEmpty"}]
         }
       },
       "id": "fa003-n04",
@@ -75,8 +73,9 @@
       "parameters": {
         "conditions": {
           "string": [
-            {"value1": "={{ $json['반려 사유'] }}", "operation": "isNotEmpty"},
-            {"value1": "={{ $json['이메일 주소'] }}", "operation": "isNotEmpty"}
+            {"value1": "={{ $json.rejectionReason }}", "operation": "isNotEmpty"},
+            {"value1": "={{ $json.email }}", "operation": "isNotEmpty"},
+            {"value1": "={{ $json.email }}", "operation": "contains", "value2": "@"}
           ]
         }
       },
@@ -89,10 +88,10 @@
     {
       "parameters": {
         "fromEmail": "pressco5755@naver.com",
-        "toEmail": "={{ $json['이메일 주소'] }}",
+        "toEmail": "={{ $('반려사유+이메일 있는가').item.json.email }}",
         "subject": "[Pressco21] 강사회원 등업 신청 결과 안내",
         "emailType": "html",
-        "html": "=<p>안녕하세요, {{ $json['성함'] }}님!</p>\n<p>프레스코21입니다.</p>\n<p>신청해주신 강사회원 등업 자료를 소중히 검토하였으나,<br>\n원활한 승인을 위해 아래 항목의 서류 보완이 필요하여 안내드립니다.</p>\n<hr>\n<p><strong>보완 요청 사유</strong></p>\n<p>{{ $json['반려 사유'] }}</p>\n<hr>\n<p><strong>승인 기준 안내</strong></p>\n<ul>\n<li>사업자등록증: 업종/업태에 '원예' 관련 내용이 포함되어야 합니다.</li>\n<li>자격증: 원예 관련 민간/국가 자격증 및 교육 이수증 사진 모두 인정됩니다.</li>\n</ul>\n<hr>\n<p><strong>조치 방법</strong></p>\n<p>아래 링크를 클릭하여 서류를 보완한 뒤 다시 제출해주시면<br>\n확인 후 즉시 등업을 도와드리겠습니다.</p>\n<p><a href=\"https://nocodb.pressco21.com/#/nc/form/2a0b4d52-bba7-4a4f-ad91-5041ea05d9a4\">서류 보완하여 재신청하기</a></p>\n<hr>\n<p>감사합니다.<br>\n<strong>Pressco21 꽃으로노는모든방법</strong></p>",
+        "html": "=<p>안녕하세요, {{ $('반려사유+이메일 있는가').item.json.name }}님!</p>\n<p>프레스코21입니다.</p>\n<p>신청해주신 강사회원 등업 자료를 소중히 검토하였으나,<br>\n원활한 승인을 위해 아래 항목의 서류 보완이 필요하여 안내드립니다.</p>\n<hr>\n<p><strong>보완 요청 사유</strong></p>\n<p>{{ $('반려사유+이메일 있는가').item.json.rejectionReason }}</p>\n<hr>\n<p><strong>승인 기준 안내</strong></p>\n<ul>\n<li>사업자등록증: 업종/업태에 '원예' 관련 내용이 포함되어야 합니다.</li>\n<li>자격증: 원예 관련 민간/국가 자격증 및 교육 이수증 사진 모두 인정됩니다.</li>\n</ul>\n<hr>\n<p><strong>조치 방법</strong></p>\n<p>아래 링크를 클릭하여 서류를 보완한 뒤 다시 제출해주시면<br>\n확인 후 즉시 등업을 도와드리겠습니다.</p>\n<p><a href=\"https://nocodb.pressco21.com/#/nc/form/2a0b4d52-bba7-4a4f-ad91-5041ea05d9a4\">서류 보완하여 재신청하기</a></p>\n<hr>\n<p>감사합니다.<br>\n<strong>Pressco21 꽃으로노는모든방법</strong></p>",
         "options": {}
       },
       "id": "fa003-n07",
@@ -100,14 +99,12 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [1300, 200],
-      "credentials": {
-        "smtp": {"id": "31jTm9BU7iyj0pVx", "name": "PRESSCO21-SMTP-Naver"}
-      }
+      "credentials": {"smtp": {"id": "31jTm9BU7iyj0pVx", "name": "PRESSCO21-SMTP-Naver"}}
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $('반려사유+이메일 있는가').item.json.Id }}",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $('반려사유+이메일 있는가').item.json.nocodb_id }}",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\"n8n_반려알림\": true}) }}",
@@ -129,7 +126,7 @@
     {
       "parameters": {
         "chatId": "7713811206",
-        "text": "={{ '\\ud83d\\udce7 반려 이메일 발송 완료\\n\\n이름: ' + $('반려사유+이메일 있는가').item.json['성함'] + '\\n이메일: ' + $('반려사유+이메일 있는가').item.json['이메일 주소'] + '\\n사유: ' + ($('반려사유+이메일 있는가').item.json['반려 사유'] || '').substring(0, 50) }}",
+        "text": "={{ '\\U0001f4e7 반려 이메일 발송 완료\\n\\n이름: ' + $('반려사유+이메일 있는가').item.json.name + '\\n이메일: ' + $('반려사유+이메일 있는가').item.json.email + '\\n사유: ' + ($('반려사유+이메일 있는가').item.json.rejectionReason || '').substring(0, 50) }}",
         "additionalFields": {}
       },
       "id": "fa003-n09",
@@ -137,14 +134,12 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [1740, 200],
-      "credentials": {
-        "telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}
-      }
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     },
     {
       "parameters": {
         "chatId": "7713811206",
-        "text": "={{ '\\u26a0\\ufe0f 반려 이메일 발송 보류\\n\\n이름: ' + $json['성함'] + '\\n이메일: ' + ($json['이메일 주소'] || '미입력') + '\\n반려사유: ' + ($json['반려 사유'] || '미입력') + '\\n\\n\\u2192 NocoDB에서 반려 사유 및 이메일을 확인해주세요.' }}",
+        "text": "={{ '\\u26a0\\ufe0f 반려 이메일 발송 보류\\n\\n이름: ' + $json.name + '\\n이메일: ' + ($json.email || '미입력') + '\\n반려사유: ' + ($json.rejectionReason || '미입력') + '\\n\\n\\u2192 NocoDB에서 반려 사유 및 이메일을 확인해주세요.' }}",
         "additionalFields": {}
       },
       "id": "fa003-n10",
@@ -152,39 +147,17 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [1300, 500],
-      "credentials": {
-        "telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}
-      }
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     }
   ],
   "connections": {
-    "5분 스케줄": {
-      "main": [[{"node": "NocoDB 반려 미발송 조회", "type": "main", "index": 0}]]
-    },
-    "NocoDB 반려 미발송 조회": {
-      "main": [[{"node": "레코드 분리", "type": "main", "index": 0}]]
-    },
-    "레코드 분리": {
-      "main": [[{"node": "처리할 건 있는가", "type": "main", "index": 0}]]
-    },
-    "처리할 건 있는가": {
-      "main": [
-        [{"node": "반려사유+이메일 있는가", "type": "main", "index": 0}],
-        [{"node": "처리 없음", "type": "main", "index": 0}]
-      ]
-    },
-    "반려사유+이메일 있는가": {
-      "main": [
-        [{"node": "반려 이메일 발송", "type": "main", "index": 0}],
-        [{"node": "텔레그램 보류 알림", "type": "main", "index": 0}]
-      ]
-    },
-    "반려 이메일 발송": {
-      "main": [[{"node": "NocoDB 반려알림 표시", "type": "main", "index": 0}]]
-    },
-    "NocoDB 반려알림 표시": {
-      "main": [[{"node": "텔레그램 발송 완료 알림", "type": "main", "index": 0}]]
-    }
+    "5분 스케줄": {"main": [[{"node": "NocoDB 반려 미발송 조회", "type": "main", "index": 0}]]},
+    "NocoDB 반려 미발송 조회": {"main": [[{"node": "레코드 분리", "type": "main", "index": 0}]]},
+    "레코드 분리": {"main": [[{"node": "처리할 건 있는가", "type": "main", "index": 0}]]},
+    "처리할 건 있는가": {"main": [[{"node": "반려사유+이메일 있는가", "type": "main", "index": 0}], [{"node": "처리 없음", "type": "main", "index": 0}]]},
+    "반려사유+이메일 있는가": {"main": [[{"node": "반려 이메일 발송", "type": "main", "index": 0}], [{"node": "텔레그램 보류 알림", "type": "main", "index": 0}]]},
+    "반려 이메일 발송": {"main": [[{"node": "NocoDB 반려알림 표시", "type": "main", "index": 0}]]},
+    "NocoDB 반려알림 표시": {"main": [[{"node": "텔레그램 발송 완료 알림", "type": "main", "index": 0}]]}
   },
   "settings": {
     "executionOrder": "v1"
