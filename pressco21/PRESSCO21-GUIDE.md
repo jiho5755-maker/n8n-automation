@@ -1,232 +1,301 @@
 # Pressco21 자동화 시스템 — 전체 가이드
 
 > 이 파일 하나로 전체 시스템을 파악하고, 새 서버에서도 처음부터 세팅할 수 있습니다.
-> 최종 업데이트: 2026-02-25
+> 최종 업데이트: 2026-02-27
 
 ---
 
 ## 목차
 
 1. [시스템 개요](#1-시스템-개요)
-2. [현재 운영 상태](#2-현재-운영-상태)
-3. [필요한 계정 및 API 키 목록](#3-필요한-계정-및-api-키-목록)
-4. [새 서버에서 처음부터 세팅하기](#4-새-서버에서-처음부터-세팅하기)
-5. [각 프로젝트 워크플로우 설치](#5-각-프로젝트-워크플로우-설치)
-6. [일상 운영 가이드](#6-일상-운영-가이드)
-7. [문제 해결](#7-문제-해결)
+2. [현재 운영 중인 워크플로우 전체 목록](#2-현재-운영-중인-워크플로우-전체-목록)
+3. [FA 강사 시스템 운영 방법](#3-fa-강사-시스템-운영-방법)
+4. [필요한 계정 및 API 키 목록](#4-필요한-계정-및-api-키-목록)
+5. [새 서버에서 처음부터 세팅하기](#5-새-서버에서-처음부터-세팅하기)
+6. [각 프로젝트 워크플로우 재설치 방법](#6-각-프로젝트-워크플로우-재설치-방법)
+7. [일상 운영 가이드](#7-일상-운영-가이드)
+8. [문제 해결](#8-문제-해결)
 
 ---
 
 ## 1. 시스템 개요
 
+서버 1대에서 모든 자동화가 돌아갑니다.
+
 ```
-n8n-main/
-├── automation-project/   ← [프로젝트 1] 업무 일정 자동화 (운영 중)
-├── govt-support/         ← [프로젝트 2] FA 강사 신청 + 정부지원사업 (운영 중)
-└── homepage-automation/  ← [프로젝트 3] 쇼핑몰 운영 자동화 (기획 완료, 구현 대기)
+pressco21/
+├── automation-project/    ← [그룹 1] 업무 일정 자동화
+│   └── workflows/         ← 워크플로우 JSON 파일 (F1~F4)
+├── govt-support/          ← [그룹 2] 정부지원사업 자동수집
+│   └── workflows/         ← 워크플로우 JSON 파일 (GS-301~303)
+└── homepage-automation/   ← [그룹 3] 쇼핑몰 + 강사 시스템
+    └── workflows/         ← 워크플로우 JSON 파일 (FA-001~003, F030a/b)
 ```
 
-모든 프로젝트는 **같은 서버 1대**에서 돌아갑니다.
+### 그룹 1 — 업무 일정 자동화
 
-### 프로젝트 1 — 업무 일정 자동화
+텔레그램으로 업무를 입력하면 노션 DB에 자동으로 등록되고, 매일 아침 할 일 브리핑을 받는 시스템.
 
 | 항목 | 내용 |
 |------|------|
-| 목적 | 텔레그램/구글캘린더로 업무 입력 → 노션 DB 자동 정리 |
 | 봇 | @Pressco21_bot |
-| 주요 기능 | F1 텔레그램봇, F2 캘린더 동기화, F3 모닝브리핑, F4 밀린업무알림 |
+| 주요 기능 | 텔레그램→노션 입력, 구글캘린더 동기화, 모닝브리핑, 밀린업무 알림 |
 | 상세 문서 | `automation-project/PRD.md`, `USAGE-GUIDE.md` |
 
-### 프로젝트 2 — FA 강사 신청 관리
+### 그룹 2 — 정부지원사업 자동수집
+
+기업마당/K-Startup/보조금24에서 매일 새 공고를 수집하고 AI가 분석해서 텔레그램으로 알려주는 시스템.
 
 | 항목 | 내용 |
 |------|------|
-| 목적 | 에어테이블 강사 신청 폼 → 텔레그램 알림 → 메이크샵 등급 자동 변경 |
-| 봇 | @Pressco21_makeshop_bot |
-| 주요 기능 | FA-001(등급변경), FA-002(신청알림) |
-| 상세 문서 | `govt-support/강사신청_자동화_가이드.md` |
-
-### 프로젝트 2b — 정부지원사업 자동수집
-
-| 항목 | 내용 |
-|------|------|
-| 목적 | 기업마당/K-Startup/보조금24 API → AI 분석 → 텔레그램 알림 |
 | 봇 | @Pressco21_bot |
-| 상태 | 워크플로우 완성, n8n import 대기 중 |
-| 상세 문서 | `govt-support/PRD.md`, `ROADMAP.md` |
+| 주요 기능 | 공고 자동수집, 마감임박 재알림, 월간 리포트 |
+| 상세 문서 | `govt-support/PRD.md` |
 
-### 프로젝트 3 — 쇼핑몰 운영 자동화
+### 그룹 3 — 쇼핑몰 + 강사 시스템
+
+쇼핑몰 강사회원 신청 자동화 + SNS 콘텐츠 일정 관리.
 
 | 항목 | 내용 |
 |------|------|
-| 목적 | CS 자동 알림, 리뷰 AI 답변, 미수금 관리 |
-| 상태 | PRD 완성, 구현 대기 |
-| 상세 문서 | `homepage-automation/PRD.md`, `AUTOMATION-STRATEGY.md` |
+| 봇 | @Pressco21_makeshop_bot |
+| 주요 기능 | FA-001(등급자동변경), FA-002(신청알림), FA-003(반려이메일), F030(SNS리마인더) |
+| 데이터 | NocoDB (nocodb.pressco21.com) |
+| 상세 문서 | `homepage-automation/ACTION-GUIDE.md` |
 
 ---
 
-## 2. 현재 운영 상태
+## 2. 현재 운영 중인 워크플로우 전체 목록
 
-| 워크플로우 | 파일 위치 | n8n ID | 상태 |
-|-----------|----------|--------|------|
-| F1 텔레그램봇 | `automation-project/workflows/telegram-todo-bot.json` | - | ✅ 운영 중 |
-| F2 구글캘린더 동기화 | `automation-project/workflows/google-calendar-todo.json` | - | ✅ 운영 중 |
-| F3 모닝브리핑 | `automation-project/workflows/morning-briefing.json` | - | ✅ 운영 중 |
-| F4 밀린업무알림 | `automation-project/workflows/overdue-alert.json` | - | ✅ 운영 중 |
-| FA-001 강사 등급변경 | `govt-support/workflows/FA-001_강사회원_등급_자동변경.json` | `jaTfiQuY35DjgrxN` | ✅ 운영 중 |
-| FA-002 강사 신청알림 | `govt-support/workflows/FA-002_강사_신청_알림.json` | `ovWkhq7E0ZqvjBIZ` | ✅ 운영 중 |
-| 정부지원사업 수집 | `govt-support/workflows/정부지원사업_Pressco21.json` | - | ⏳ Import 대기 |
+총 12개 워크플로우가 자동 실행 중입니다.
+
+### 그룹 1 — 업무 일정 (4개)
+
+| 워크플로우 | 파일 | 실행 조건 | 하는 일 |
+|-----------|------|----------|--------|
+| F1 텔레그램봇 | `automation-project/workflows/telegram-todo-bot.json` | 텔레그램 메시지 수신 시 | 메시지 파싱 → 노션 할 일 등록 |
+| F2 구글캘린더 | `automation-project/workflows/google-calendar-todo.json` | 5분마다 | 노션 할 일 → 구글캘린더 동기화 |
+| F3 모닝브리핑 | `automation-project/workflows/morning-briefing.json` | 매일 08:00 | 오늘 할 일 + 밀린 일 텔레그램 요약 |
+| F4 밀린업무알림 | `automation-project/workflows/overdue-alert.json` | 매일 09:00 | 기한 지난 할 일 텔레그램 알림 |
+
+### 그룹 2 — 정부지원사업 (3개)
+
+| 워크플로우 | n8n ID | 실행 조건 | 하는 일 |
+|-----------|--------|----------|--------|
+| 자동수집 | `7MXN1lNCR3b7VcLF` | 매일 09:00 | 기업마당/K-Startup/보조금24 수집 → AI 분석 → 텔레그램 |
+| 마감임박 재알림 | `3TXzJ9AADTf9oNL6` | 매일 09:30 | 마감 3일 전 공고 알림 + 기간만료 상태 변경 |
+| 월간리포트 | `oeIOcnDYpSDmbkKp` | 매월 1일 10:00 | 지난달 수집 공고 텔레그램 요약 |
+
+### 그룹 3 — 쇼핑몰 + 강사 (5개)
+
+| 워크플로우 | n8n ID | 실행 조건 | 하는 일 |
+|-----------|--------|----------|--------|
+| FA-001 강사 등급변경 | `jaTfiQuY35DjgrxN` | 5분마다 | NocoDB `승인대기` 레코드 → 메이크샵 등급 변경 → NocoDB `승인완료` + 이메일 |
+| FA-002 강사 신청알림 | `ovWkhq7E0ZqvjBIZ` | 1시간마다 | 새 신청 접수 시 텔레그램 알림 |
+| FA-003 강사 반려이메일 | `Ks4JvBC06cEj6b8b` | 5분마다 | NocoDB `반려` 레코드 → 고객 이메일로 반려 안내 발송 |
+| F030a SNS 일일리마인더 | `A2VToTXNoaeHu29N` | 매일 09:00 | 내일 발행 예정 SNS 콘텐츠 텔레그램 알림 |
+| F030b SNS 주간리포트 | `3X7AM40dgQP4SQAO` | 매주 월요일 09:00 | 이번 주 SNS 발행 일정 요약 |
 
 ---
 
-## 3. 필요한 계정 및 API 키 목록
+## 3. FA 강사 시스템 운영 방법
+
+> 강사 신청이 들어오면 어떻게 처리하는지 단계별로 설명합니다.
+
+### 강사 신청 전체 흐름
+
+```
+1. 고객이 신청 폼 작성
+   → https://nocodb.pressco21.com/#/nc/form/2a0b4d52-bba7-4a4f-ad91-5041ea05d9a4
+
+2. FA-002가 1시간 내 텔레그램으로 알림 발송
+   → @Pressco21_makeshop_bot 으로 수신
+
+3. 관리자가 NocoDB에서 증빙서류 확인
+   → https://nocodb.pressco21.com
+   → '강사공간' 테이블 클릭
+
+4a. 승인하는 경우
+    → '진행 상태' 를 [승인대기] 로 변경 후 저장
+    → FA-001이 5분 이내 자동으로:
+       - 메이크샵에서 강사그룹으로 등급 변경
+       - NocoDB '진행 상태'를 [승인완료]로 자동 변경
+       - 텔레그램으로 완료 알림
+       - 고객 이메일로 승인 축하 이메일 발송
+
+4b. 반려하는 경우
+    → '반려 사유' 칸에 구체적인 사유 입력 (예: "사업자등록증에 원예 업종 없음")
+    → '진행 상태'를 [반려] 로 변경 후 저장
+    → FA-003이 5분 이내 자동으로:
+       - 고객 이메일로 반려 안내 + 재신청 링크 발송
+       - 텔레그램으로 발송 완료 알림
+```
+
+> **중요**: 반려할 때는 반드시 '반려 사유'를 먼저 입력한 뒤 상태를 변경하세요.
+> 이메일이나 사유가 없으면 발송이 보류되고 텔레그램으로 "보류 알림"이 옵니다.
+
+### NocoDB '진행 상태' 옵션 설명
+
+| 상태값 | 언제 사용 |
+|--------|---------|
+| 신청완료 | 고객이 폼 제출 시 자동 설정 (건드릴 필요 없음) |
+| 승인대기 | 관리자가 서류 확인 후 승인 결정 시 직접 변경 |
+| 승인완료 | FA-001이 등급 변경 성공 후 자동 설정 (건드릴 필요 없음) |
+| 반려 | 관리자가 부적격 판단 시 직접 변경 |
+| 대기중 | 서류 보완 요청 등 임시 보류 시 사용 |
+
+---
+
+## 4. 필요한 계정 및 API 키 목록
 
 새 환경에서 세팅할 때 아래 항목들이 모두 준비되어야 합니다.
 
-### 필수 계정
+### 필수 서비스 계정
 
-| 서비스 | 용도 | 비용 | 가입 주소 |
-|--------|------|------|---------|
-| **Oracle Cloud** | 서버 (n8n 실행) | 무료 | cloud.oracle.com |
-| **n8n** | 자동화 엔진 (서버에 설치) | 무료 (self-hosted) | n8n.io |
-| **텔레그램** | 알림 수신, 입력 | 무료 | telegram.org |
-| **노션** | 업무 DB | 무료 | notion.so |
-| **구글 계정** | 구글 캘린더 | 무료 | google.com |
-| **에어테이블** | FA 강사 신청 관리 | 무료 | airtable.com |
-| **메이크샵** | 쇼핑몰 (이미 운영 중) | 별도 | makeshop.co.kr |
+| 서비스 | 용도 | 비용 |
+|--------|------|------|
+| **Oracle Cloud** | 서버 (n8n 실행) | 무료 (Free Tier) |
+| **텔레그램** | 알림 수신 + 업무 입력 | 무료 |
+| **노션** | 업무 관리 DB | 무료 |
+| **구글 계정** | 구글 캘린더 | 무료 |
+| **NocoDB** | 강사 신청 DB | 무료 (self-hosted) |
+| **네이버 메일 (SMTP)** | 강사 이메일 발송 | 무료 |
+| **메이크샵** | 쇼핑몰 (이미 운영 중) | 별도 |
+| **공공데이터포털** | 정부지원사업 API | 무료 |
+| **Google AI Studio** | Gemini AI 분석 | 무료 |
 
-### API 키 목록 (n8n Credentials에 등록된 것들)
+### n8n Credentials 목록
 
-| 서비스 | n8n Credential 이름 | 용도 |
-|--------|-------------------|------|
-| 텔레그램 봇 1 | `Pressco21_bot` | 업무 일정 + 정부지원사업 |
-| 텔레그램 봇 2 | `Pressco메이크샵봇` (ID: `RdFu3nsFuuO5NCff`) | FA 강사 신청, 쇼핑몰 |
-| 노션 | `Notion API` (httpHeaderAuth) | 업무 DB 읽기/쓰기 |
-| 구글 캘린더 | `Google Calendar` (OAuth2) | 캘린더 연동 |
-| 에어테이블 | `Airtable PAT` (ID: `JK1lFxPvfCkIFclZ`) | FA 강사 DB |
-| 메이크샵 API | 헤더에 직접 입력 | 회원 조회/등급 변경 |
+새 서버에 재설치할 때 n8n에 등록해야 하는 자격증명 목록입니다.
 
-### 주요 설정값 (n8n Variables에 등록된 것들)
+| 서비스 | n8n Credential 이름 | 타입 | 용도 |
+|--------|-------------------|------|------|
+| 텔레그램 봇 1 | `Pressco21_bot` | Telegram | 업무 일정 + 정부지원사업 |
+| 텔레그램 봇 2 | `Pressco메이크샵봇` | Telegram | FA 강사 신청, 쇼핑몰 알림 |
+| 노션 | `Notion API` | Header Auth | 업무 DB 읽기/쓰기 |
+| 구글 캘린더 | `Google Calendar` | OAuth2 | 캘린더 연동 |
+| 네이버 SMTP | `PRESSCO21-SMTP-Naver` | SMTP | 강사 승인/반려 이메일 발송 |
+| 메이크샵 API | (헤더에 직접 입력) | - | 회원 조회/등급 변경 |
 
-| 변수명 | 값 | 용도 |
-|--------|-----|------|
-| `GOVT_BIZINFO_API_KEY` | `FmSrV3...` | 기업마당 API |
-| `GOVT_PUBLIC_DATA_KEY` | 공공데이터포털 API 키 | K-Startup/보조금24 |
-| `GEMINI_API_KEY` | Google AI Studio 키 | AI 분석 |
-| `AIRTABLE_BASE_ID` | `app6CynYU5qzIFyKl` | 정부지원사업 DB |
-| `AIRTABLE_API_KEY` | Airtable PAT | 정부지원사업 DB |
+> 메이크샵 API 키와 NocoDB API 토큰은 각 워크플로우 HTTP Request 노드의 헤더에 직접 입력되어 있습니다.
+
+### 주요 API 키 값 (참조용)
+
+| 서비스 | 키 값 |
+|--------|-------|
+| NocoDB API 토큰 | `SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl` |
+| NocoDB Project ID | `poey1yrm1r6sthf` |
+| NocoDB 강사공간 테이블 ID | `mcafm2yyeaupdnt` |
+| 텔레그램 Chat ID | `7713811206` |
+
+> 메이크샵 Shopkey/Licensekey는 FA-001 워크플로우 안에 저장되어 있습니다.
+> 정부지원사업 API 키들은 각 워크플로우 노드 안에 직접 입력되어 있습니다.
 
 ---
 
-## 4. 새 서버에서 처음부터 세팅하기
+## 5. 새 서버에서 처음부터 세팅하기
 
-> 기존 서버(n8n.pressco21.com)가 정상 운영 중이라면 이 섹션은 건너뛰세요.
+> 현재 서버(n8n.pressco21.com)가 정상 운영 중이라면 이 섹션은 건너뛰세요.
 > 서버를 교체하거나 새로 시작할 때만 필요합니다.
 
 ### Step 1 — 서버 준비
 
-**Oracle Cloud Free Tier 인스턴스 생성 (권장):**
+**Oracle Cloud Free Tier 인스턴스 생성:**
+
 1. [cloud.oracle.com](https://cloud.oracle.com) 로그인
 2. Compute > Instances > Create Instance
 3. Shape: `VM.Standard.A1.Flex` (ARM, 무료)
 4. OCPU: 2, Memory: 12GB (무료 한도 최대)
 5. OS: Ubuntu 22.04 LTS
-6. SSH 키 다운로드 후 보관 (분실 시 서버 접근 불가)
-7. 생성 후 외부 IP 확인
+6. SSH 키 다운로드 후 안전한 곳에 보관 (분실 시 서버 접근 불가)
+7. 생성 후 외부 IP 확인 → DNS에 `n8n.pressco21.com` A레코드 추가
 
-> **"Out of Host Capacity" 오류 시**: 새벽 시간대(새벽 2~6시)에 재시도하거나, 다른 리전 선택
+> **"Out of Host Capacity" 오류 시**: 새벽 2~6시에 재시도하거나 다른 리전 선택
 
-**대안: Contabo VPS (서울/도쿄)**
-- 월 $4.95, 4 vCPU / 8GB RAM / 100GB SSD
-- [contabo.com](https://contabo.com) 에서 신청
-
-### Step 2 — 서버 초기 설정
-
-SSH 접속 후 아래 스크립트 실행:
+### Step 2 — 서버 기본 설정
 
 ```bash
 # 서버 접속
 ssh -i [다운로드한_키.key] ubuntu@[서버_IP]
 
-# 초기 설정 스크립트 (Docker 설치 + 방화벽 설정 포함)
-# 이 프로젝트의 설정 파일 사용:
-# automation-project/server-config/setup.sh
-```
-
-또는 수동으로:
-
-```bash
-# 1. 패키지 업데이트
+# 패키지 업데이트
 sudo apt update && sudo apt upgrade -y
 
-# 2. Docker 설치
+# Docker 설치
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker ubuntu
 newgrp docker
 
-# 3. Docker Compose 설치
+# Docker Compose 설치
 sudo apt install docker-compose-plugin -y
 
-# 4. 방화벽 설정 (Oracle Cloud는 별도로 인바운드 규칙도 열어야 함)
-sudo ufw allow 22    # SSH
-sudo ufw allow 80    # HTTP
-sudo ufw allow 443   # HTTPS
+# 방화벽 설정 (Oracle Cloud는 인바운드 규칙도 별도 설정 필요)
+sudo ufw allow 22 && sudo ufw allow 80 && sudo ufw allow 443
 sudo ufw enable
 ```
 
 ### Step 3 — n8n 설치
 
 ```bash
-# 프로젝트 파일 서버로 복사 (로컬에서 실행)
+# docker-compose.yml 서버로 복사 (로컬 PC에서 실행)
 scp -i [키.key] automation-project/server-config/docker-compose.yml ubuntu@[서버IP]:~/
 scp -i [키.key] automation-project/server-config/.env.example ubuntu@[서버IP]:~/.env
 
-# 서버에서 .env 파일 수정
+# 서버에서 환경변수 수정
 nano ~/.env
 # 아래 값들을 실제 값으로 변경:
-# N8N_HOST=n8n.yourdomain.com
-# POSTGRES_PASSWORD=강력한비밀번호
-# N8N_ENCRYPTION_KEY=32자이상의랜덤문자열
+#   N8N_HOST=n8n.pressco21.com
+#   POSTGRES_PASSWORD=강력한비밀번호
+#   N8N_ENCRYPTION_KEY=32자이상의랜덤문자열
 
-# Docker 실행
+# n8n 실행
 docker compose up -d
 
-# 실행 확인
-docker ps
+# 실행 확인 (ok 응답이 오면 정상)
 curl localhost:5678/healthz
 ```
 
-### Step 4 — 도메인 및 HTTPS 설정
+### Step 4 — 도메인 + HTTPS 설정
 
 ```bash
-# Nginx 설치
+# Nginx + Certbot 설치
 sudo apt install nginx certbot python3-certbot-nginx -y
 
-# 설정 파일 복사 (로컬에서)
+# 설정 파일 복사 (로컬 PC에서)
 scp -i [키.key] automation-project/server-config/nginx-n8n.conf ubuntu@[서버IP]:/etc/nginx/sites-available/n8n
 
-# 서버에서 도메인 설정 (도메인을 서버 IP로 미리 연결해두어야 함)
+# Nginx 활성화
 sudo ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 
 # SSL 인증서 발급
-sudo certbot --nginx -d n8n.yourdomain.com
+sudo certbot --nginx -d n8n.pressco21.com
 ```
 
-### Step 5 — n8n 초기 로그인
+### Step 5 — NocoDB 설치 (강사 시스템용)
 
-1. 브라우저에서 `https://n8n.yourdomain.com` 접속
-2. 최초 접속 시 관리자 계정 생성
-3. 이메일/비밀번호 기록해두기
+```bash
+# NocoDB 설치 (Docker)
+docker run -d \
+  --name nocodb \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v ~/nocodb:/usr/app/data \
+  nocodb/nocodb:latest
+
+# Nginx에 nocodb 서브도메인 추가 설정 필요
+# nocodb.pressco21.com → localhost:8080
+```
 
 ---
 
-## 5. 각 프로젝트 워크플로우 설치
+## 6. 각 프로젝트 워크플로우 재설치 방법
 
-### 공통 절차 — 자격증명 등록
+> 기존 서버가 살아있다면 이미 설치되어 있으므로 필요 없습니다.
+> 새 서버나 워크플로우가 사라진 경우에만 따라하세요.
 
-n8n에 워크플로우를 import하기 전에, 자격증명을 먼저 등록해야 합니다.
+### 공통 절차 — n8n 자격증명 등록
 
 **n8n 접속 → 왼쪽 메뉴 Credentials → Add Credential**
 
@@ -234,214 +303,166 @@ n8n에 워크플로우를 import하기 전에, 자격증명을 먼저 등록해�
 
 ```
 타입: Telegram
-이름: Pressco21_bot
+이름: Pressco21_bot (또는 Pressco메이크샵봇)
 Access Token: [BotFather에서 발급받은 토큰]
 ```
-
-> 봇 없으면: 텔레그램 @BotFather → /newbot → 토큰 발급
-
-#### 에어테이블 등록
-
-```
-타입: Airtable Personal Access Token API
-이름: Airtable PAT
-Access Token: [airtable.com/account에서 발급한 PAT]
-```
-
-> PAT 권한 설정: data.records:read, data.records:write
 
 #### 노션 등록
 
 ```
-타입: Header Auth (httpHeaderAuth)
+타입: Header Auth
 이름: Notion API
 Name: Authorization
 Value: Bearer [노션 Integration 토큰]
 ```
 
-> 노션 Integration 생성: notion.so/my-integrations
+#### 네이버 SMTP 등록 (이메일 발송용)
+
+```
+타입: SMTP
+이름: PRESSCO21-SMTP-Naver
+Host: smtp.naver.com
+Port: 465
+User: pressco5755@naver.com
+Password: [네이버 앱 비밀번호]
+SSL: true
+```
 
 #### 구글 캘린더 등록
 
-n8n의 Google Calendar OAuth2 방식으로 등록 (자세한 방법은 `automation-project/DEPLOYMENT-GUIDE.md` 참조)
+n8n의 Google Calendar OAuth2 방식으로 등록 (`automation-project/DEPLOYMENT-GUIDE.md` 참조)
 
 ---
 
-### 프로젝트 1 — 업무 일정 자동화 설치
+### 그룹 1 — 업무 일정 자동화 설치
 
 **파일 위치:** `automation-project/workflows/`
 
-**Import 순서:**
+1. `telegram-todo-bot.json` import
+2. `google-calendar-todo.json` import
+3. `morning-briefing.json` import
+4. `overdue-alert.json` import
 
-1. **F1 텔레그램봇** (`telegram-todo-bot.json`)
-   - Telegram Trigger 노드 → 텔레그램 봇 자격증명 선택
-   - 노션 HTTP Request 노드들 → Notion API 자격증명 선택
-
-2. **F2 구글캘린더** (`google-calendar-todo.json`)
-   - Google Calendar 노드 → Google Calendar 자격증명 선택
-   - 노션 노드들 → Notion API 자격증명 선택
-
-3. **F3 모닝브리핑** (`morning-briefing.json`)
-   - Schedule Trigger: 매일 08:00
-   - 노션 노드들 → Notion API 자격증명 선택
-   - Telegram 노드 → 텔레그램 봇 자격증명 선택
-
-4. **F4 밀린업무알림** (`overdue-alert.json`)
-   - Schedule Trigger: 매일 09:00, 17:00
-   - 노션/Telegram 자격증명 선택
-
-**노션 DB ID (기존 설정 그대로):**
-
-| DB | ID |
-|----|-----|
-| 업무 카테고리 | `30bd119f-a669-8138-8e1f-f78839bf277c` |
-| 프로젝트 | `30bd119f-a669-81e2-a747-f9002c0a9910` |
-| 할 일 | `30bd119f-a669-81d0-8730-d824b7bc948c` |
-| 캘린더 | `30bd119f-a669-812c-8bf4-fe603e6a8c6b` |
+각 파일 import 후:
+- Telegram 노드 → 자격증명 선택
+- Notion 노드 → Notion API 자격증명 선택
+- Active 토글 ON
 
 ---
 
-### 프로젝트 2 — FA 강사 신청 관리 설치
-
-> 상세 가이드: `govt-support/강사신청_자동화_가이드.md`
+### 그룹 2 — 정부지원사업 설치
 
 **파일 위치:** `govt-support/workflows/`
 
+1. `정부지원사업_Pressco21.json` import
+2. `정부지원사업_마감임박_재알림.json` import
+3. `정부지원사업_월간리포트.json` import
+
+각 파일 import 후 Active 토글 ON
+
+> API 키들은 워크플로우 노드 안에 직접 하드코딩되어 있으므로 별도 설정 불필요
+
+---
+
+### 그룹 3 — 쇼핑몰 + 강사 시스템 설치
+
+**파일 위치:** `homepage-automation/workflows/`
+
 **Import 순서:**
 
-1. **FA-002** (`FA-002_강사_신청_알림.json`) — 신청 알림
+1. `FA-002_강사_신청_알림.json` — 신청 알림
+2. `FA-001_강사회원_등급_자동변경.json` — 등급 자동 변경 + 승인 이메일
+3. `FA-003_강사_반려_이메일_자동발송.json` — 반려 이메일
+4. `F030a_SNS_콘텐츠_일일리마인더.json` — SNS 일일 알림
+5. `F030b_SNS_콘텐츠_주간리포트.json` — SNS 주간 요약
 
-   Import 후 수정:
-   - `신규 신청 조회` 노드 → Airtable PAT 자격증명 선택
-   - Base ID: `app6MBsHo7AKwh5XD`
-   - `텔레그램 신청 알림` 노드 → @Pressco21_makeshop_bot 자격증명 선택
-   - `신청알림 발송 표시` 노드 (HTTP Request) → Authorization 헤더값에 `Bearer [에어테이블 PAT 토큰]` 입력
+Import 후 각 워크플로우:
+- Telegram 노드 → `Pressco메이크샵봇` 자격증명 선택
+- FA-001, FA-003 의 emailSend 노드 → `PRESSCO21-SMTP-Naver` 자격증명 선택
+- Active 토글 ON
 
-2. **FA-001** (`FA-001_강사회원_등급_자동변경.json`) — 등급 자동 변경
-
-   Import 후 확인:
-   - 메이크샵 API 키가 헤더에 올바르게 설정되어 있는지 확인
-   - Airtable 자격증명 선택
-   - 텔레그램 봇 자격증명 선택
-
-> **중요**: 두 워크플로우 모두 Active 토글을 ON 해야 자동 실행됩니다.
+> NocoDB, 메이크샵 API 키는 노드 안에 직접 입력되어 있음
 
 ---
 
-### 프로젝트 2b — 정부지원사업 수집 설치 (아직 미설치)
-
-**파일 위치:** `govt-support/workflows/정부지원사업_Pressco21.json`
-
-**Import 전 준비:**
-
-1. Airtable에 `정부지원사업` Base 및 테이블 생성 (`govt-support/ROADMAP.md` GS-003 참조)
-2. n8n Variables에 5개 등록:
-   - `GOVT_BIZINFO_API_KEY` — 기업마당 API
-   - `GOVT_PUBLIC_DATA_KEY` — 공공데이터포털 API
-   - `GEMINI_API_KEY` — Google AI Studio
-   - `AIRTABLE_BASE_ID` — `app6CynYU5qzIFyKl`
-   - `AIRTABLE_API_KEY` — Airtable PAT
-
-**Import 후:**
-- 모든 노드에 자격증명 연결
-- 수동 테스트 실행 후 문제 없으면 Active ON
-
----
-
-### 프로젝트 3 — 쇼핑몰 운영 자동화 (미구현)
-
-현재 PRD(기획서)만 완성된 상태입니다. 구현 시작 전:
-- `homepage-automation/PRD.md` — 전체 기능 명세
-- `homepage-automation/ROADMAP.md` — 개발 단계별 계획
-- `homepage-automation/AUTOMATION-STRATEGY.md` — 전체 전략
-
----
-
-## 6. 일상 운영 가이드
+## 7. 일상 운영 가이드
 
 ### n8n 서버 상태 확인
 
 ```bash
-# 서버 SSH 접속
+# 서버 접속
 ssh -i [키.key] ubuntu@158.180.77.201
 
-# n8n 컨테이너 상태
-docker ps | grep n8n
+# n8n 컨테이너 상태 확인
+docker ps
 
-# 정상이면: "Up X hours" 또는 "Up X minutes"
-# 이상하면: docker compose restart 또는 아래 재시작 명령
-```
-
-### n8n 재시작 방법
-
-```bash
-# n8n Docker 재시작
-cd ~  # docker-compose.yml이 있는 위치
+# 정상: "Up X hours" 상태
+# 비정상: 재시작 명령 실행
 docker compose restart
 
-# 재시작 확인
+# 재시작 후 정상 확인
 curl localhost:5678/healthz
 # 응답: {"status":"ok"}
 ```
 
-### 워크플로우 실행 오류 확인
+### 워크플로우 실행 로그 확인
 
 1. `https://n8n.pressco21.com` 접속
 2. 왼쪽 메뉴 **Executions** 클릭
-3. 빨간색 `Error` 항목 클릭
-4. 빨간 테두리 노드 클릭 → 오류 메시지 확인
+3. 빨간색 `Error` 항목 클릭 → 오류 노드 확인
 
-### FA 시스템 일상 운영
+### SNS 콘텐츠 일정 관리 방법
 
-```
-강사 신청 접수
-  ↓ (자동, 5분 이내)
-텔레그램 알림 수신 (@Pressco21_makeshop_bot)
-  ↓
-에어테이블(airtable.com)에서 신청 내용 확인
-  ↓
-승인: n8n_강사승인 체크 ✅
-거부: 체크 없이 메모만
-  ↓ (자동, 5분 이내)
-메이크샵 회원 등급 자동 변경
-텔레그램 완료 알림
-```
+1. 노션 `콘텐츠 캘린더` DB 접속
+2. 새 항목 추가:
+   - 제목: 콘텐츠 제목
+   - 발행일: 원하는 날짜
+   - 채널: 인스타그램 / 유튜브 / 블로그 등
+   - 상태: 기획중 / 작성중 / 발행완료
+3. 전날 09:00에 F030a가 자동으로 텔레그램 알림 발송
 
 ---
 
-## 7. 문제 해결
+## 8. 문제 해결
 
 ### 에러 코드별 원인과 해결
 
 | 에러 | 원인 | 해결 |
 |------|------|------|
-| `401 Unauthorized` | API 키 만료/오류 | 해당 서비스에서 API 키 재발급 후 n8n Credentials 업데이트 |
-| `403 Forbidden` | 권한/IP 차단 | 메이크샵: 오픈API 허용IP에 `158.180.77.201` 추가 |
+| `401 Unauthorized` | API 키 오류/만료 | n8n Credentials에서 해당 키 업데이트 |
+| `403 Forbidden` | 메이크샵 IP 차단 | 메이크샵 관리자 → 오픈API → 허용IP에 `158.180.77.201` 추가 |
 | `Connection refused` | n8n 서버 다운 | `docker compose restart` |
-| `rate limit exceeded` | API 호출 초과 | 메이크샵: 시간당 500회 제한. 워크플로우 실행 간격 늘리기 |
+| `rate limit exceeded` | API 호출 초과 | 메이크샵: 시간당 500회 제한. 1시간 후 자동 재실행 대기 |
 
 ### 자주 묻는 것들
 
 **Q. 텔레그램 알림이 안 옵니다.**
 A. 순서대로 확인:
-1. n8n 서버 켜져 있는지 → `docker ps`
-2. 워크플로우 Active 상태인지 → n8n UI에서 확인
-3. n8n Executions에서 오류 메시지 확인
+1. `docker ps` — n8n 컨테이너 실행 중인지 확인
+2. n8n UI → 해당 워크플로우 → Active 상태인지 확인
+3. n8n UI → Executions → 빨간 에러 항목 확인
 
-**Q. 에어테이블 토큰을 바꿔야 하나요?**
-A. 아닙니다. Airtable PAT는 직접 삭제하지 않는 한 만료되지 않습니다. 시스템이 정상 작동하면 토큰을 바꿀 필요가 없습니다.
-
-**Q. 메이크샵 등급 변경이 실패합니다.**
+**Q. 강사 승인했는데 메이크샵 등급이 바뀌지 않았습니다.**
 A. 확인 순서:
-1. 메이크샵 관리자 → 오픈API → 허용IP에 `158.180.77.201` 있는지
-2. 오픈API → 수정 권한 허용되어 있는지
-3. n8n Executions에서 정확한 오류 메시지 확인
+1. NocoDB에서 '진행 상태'가 실제로 `승인대기`로 되어 있는지 확인
+2. n8n Executions에서 FA-001 실행 결과 확인 (5분 내 실행되었는지)
+3. 메이크샵 관리자 → 오픈API → 허용IP에 서버 IP(`158.180.77.201`) 있는지, 수정 권한 허용인지 확인
 
-**Q. n8n 서버 IP가 바뀌었습니다.**
-A. 메이크샵 오픈API 허용IP와 Nginx 설정 업데이트 필요.
+**Q. 반려 이메일이 발송되지 않았습니다.**
+A. 확인 순서:
+1. NocoDB에서 '반려 사유' 칸이 비어있지 않은지 확인
+2. NocoDB에서 '이메일 주소' 칸에 `@` 포함한 올바른 이메일인지 확인
+3. 텔레그램으로 "보류 알림"이 왔다면 → NocoDB에서 해당 항목 수정 후 `n8n_반려알림` 체크박스를 해제하면 재시도
 
 **Q. 새 서버로 이전하면 API 키를 다시 발급해야 하나요?**
-A. 메이크샵 오픈API 허용IP만 새 서버 IP로 업데이트하면 됩니다. 나머지 API 키(텔레그램, 노션, 에어테이블 등)는 그대로 재사용 가능합니다.
+A. 메이크샵 오픈API 허용IP만 새 서버 IP로 업데이트하면 됩니다. 나머지 API 키는 그대로 재사용 가능합니다.
+
+**Q. n8n 업그레이드 방법은?**
+A.
+```bash
+docker compose pull
+docker compose up -d
+```
 
 ---
 
@@ -449,13 +470,13 @@ A. 메이크샵 오픈API 허용IP만 새 서버 IP로 업데이트하면 됩니
 
 | 항목 | 값 |
 |------|-----|
-| 서버 | Oracle Cloud Free Tier ARM |
+| 서버 | Oracle Cloud Free Tier ARM (2 OCPU / 12GB RAM) |
 | 서버 IP | 158.180.77.201 |
 | n8n 주소 | https://n8n.pressco21.com |
+| NocoDB 주소 | https://nocodb.pressco21.com |
 | 텔레그램 봇 1 | @Pressco21_bot (Chat ID: 7713811206) |
 | 텔레그램 봇 2 | @Pressco21_makeshop_bot |
-| 에어테이블 FA Base | app6MBsHo7AKwh5XD |
-| 에어테이블 정부지원 Base | app6CynYU5qzIFyKl |
+| 강사 신청 폼 | https://nocodb.pressco21.com/#/nc/form/2a0b4d52-bba7-4a4f-ad91-5041ea05d9a4 |
 
 > **SSH 키**: `automation-project/오라클 클라우드 SSH Key 백업/` 폴더에 공개키 보관 중
 > 개인키(.key 파일)는 별도 안전한 곳에 보관 필요

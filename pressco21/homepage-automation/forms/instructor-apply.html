@@ -5,710 +5,1061 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>강사회원 등업 신청 — Pressco21</title>
 
-  <!-- Pretendard 폰트 -->
+  <!-- Pretendard (브랜드 사이트와 동일) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
 
   <style>
-    /* ─────────────────────────────────────────
-       CSS 변수 (디자인 토큰)
-    ───────────────────────────────────────── */
+    /* ══════════════════════════════════════════
+       DESIGN TOKENS
+    ══════════════════════════════════════════ */
     :root {
-      --color-white:          #FFFFFF;
-      --color-bg-section:     #F8F8F8;
-      --color-green-primary:  #637561;
-      --color-green-dark:     #425B51;
-      --color-green-light:    #B7C9AD;
-      --color-border:         #DDDDDD;
-      --color-text-main:      #121212;
-      --color-text-sub:       #3B3B3B;
-      --color-required:       #637561;
-      --color-error:          #C0392B;
-      --color-error-bg:       #FFF5F5;
+      --green:        #637561;
+      --green-dark:   #425B51;
+      --green-light:  #B7C9AD;
+      --green-pale:   #EEF2EA;
+      --green-frost:  #F5F7F3;
 
-      --radius-input:         2px;
-      --radius-none:          0px;
+      --white:        #FFFFFF;
+      --bg:           #F0F3EE;
+      --border:       #D6DDD3;
+      --border-focus: #637561;
 
-      --font-family:          'Pretendard', -apple-system, BlinkMacSystemFont,
-                              'Segoe UI', sans-serif;
+      --text:         #1A2218;
+      --text-sub:     #4A5B48;
+      --text-muted:   #8A9C88;
+
+      --error:        #C0392B;
+      --error-bg:     #FFF5F5;
+      --error-border: rgba(192,57,43,0.22);
+
+      --shadow-sm:    0 1px 3px rgba(66,91,81,0.09), 0 1px 2px rgba(66,91,81,0.05);
+      --shadow-md:    0 4px 20px rgba(66,91,81,0.10), 0 1px 4px rgba(66,91,81,0.06);
+      --shadow-lg:    0 8px 36px rgba(66,91,81,0.13), 0 2px 8px rgba(66,91,81,0.07);
+      --shadow-focus: 0 0 0 3.5px rgba(99,117,97,0.18);
+
+      --font:         'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+      --r-xs:         6px;
+      --r-sm:         10px;
+      --r-md:         14px;
+      --r-lg:         18px;
     }
 
-    /* ─────────────────────────────────────────
-       리셋 & 기본
-    ───────────────────────────────────────── */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    /* ══════════════════════════════════════════
+       RESET
+    ══════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ══════════════════════════════════════════
+       PAGE
+    ══════════════════════════════════════════ */
     body {
-      font-family: var(--font-family);
-      background-color: var(--color-bg-section);
-      color: var(--color-text-main);
-      font-size: 15px;
-      line-height: 1.6;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 48px 16px 80px;
+      padding: 52px 16px 96px;
     }
 
-    /* ─────────────────────────────────────────
-       폼 래퍼 카드
-    ───────────────────────────────────────── */
-    .form-wrapper {
-      max-width: 640px;
-      margin: 0 auto;
-      background: var(--color-white);
-      border: 1px solid var(--color-border);
+    /* ══════════════════════════════════════════
+       BRAND LOGO MARK
+    ══════════════════════════════════════════ */
+    .brand {
+      text-align: center;
+      margin-bottom: 28px;
+      animation: fadeDown 0.5s ease both;
     }
 
-    /* ─────────────────────────────────────────
-       헤더 영역
-    ───────────────────────────────────────── */
-    .form-header {
-      padding: 40px 40px 32px;
-      border-bottom: 1px solid var(--color-border);
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 10px 20px 10px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-flower {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+    }
+
+    .brand-words {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
     }
 
     .brand-name {
-      font-size: 11px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: var(--green-dark);
+      line-height: 1;
+    }
+
+    .brand-tagline {
+      font-size: 9.5px;
       font-weight: 400;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--color-green-primary);
+      letter-spacing: 0.05em;
+      color: var(--green);
+      line-height: 1;
+    }
+
+    /* ══════════════════════════════════════════
+       CARD
+    ══════════════════════════════════════════ */
+    .card {
+      max-width: 588px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: fadeUp 0.6s ease 0.08s both;
+    }
+
+    /* Top accent stripe */
+    .card-stripe {
+      height: 4px;
+      background: linear-gradient(90deg, var(--green-dark) 0%, var(--green) 55%, var(--green-light) 100%);
+    }
+
+    /* ── Card Header ── */
+    .card-header {
+      padding: 32px 44px 28px;
+      border-bottom: 1px solid var(--green-pale);
+      position: relative;
+    }
+
+    .card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      background: var(--green-pale);
+      border-radius: 50px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
       margin-bottom: 14px;
+      letter-spacing: 0.04em;
     }
 
-    .form-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--color-text-main);
-      letter-spacing: -0.02em;
-      line-height: 1.3;
+    .card-badge__dot {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
     }
 
-    /* ─────────────────────────────────────────
-       폼 바디
-    ───────────────────────────────────────── */
-    .form-body {
-      padding: 36px 40px 40px;
+    .card-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.025em;
+      line-height: 1.25;
+      margin-bottom: 6px;
     }
 
-    /* ─────────────────────────────────────────
-       안내문 박스
-    ───────────────────────────────────────── */
-    .notice-box {
-      background: var(--color-bg-section);
-      border-left: 3px solid var(--color-green-primary);
-      padding: 18px 20px;
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Card Body ── */
+    .card-body {
+      padding: 36px 44px 44px;
+    }
+
+    /* ══════════════════════════════════════════
+       NOTICE BOX
+    ══════════════════════════════════════════ */
+    .notice {
+      background: var(--green-frost);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: var(--r-sm);
+      padding: 17px 20px;
       margin-bottom: 36px;
     }
 
-    .notice-box ul {
-      list-style: none;
+    .notice-head {
       display: flex;
-      flex-direction: column;
-      gap: 9px;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 10px;
     }
 
-    .notice-box li {
+    .notice ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+
+    .notice li {
       font-size: 13px;
-      color: var(--color-text-sub);
-      line-height: 1.55;
+      color: var(--text-sub);
+      line-height: 1.6;
       padding-left: 18px;
       position: relative;
     }
 
-    /* 체크 아이콘 */
-    .notice-box li::before {
+    .notice li::before {
       content: '✓';
       position: absolute;
-      left: 0;
-      top: 0;
-      color: var(--color-green-primary);
-      font-size: 12px;
+      left: 0; top: 0.5px;
+      color: var(--green);
+      font-size: 11px;
       font-weight: 700;
     }
 
-    /* ─────────────────────────────────────────
-       필드 그룹
-    ───────────────────────────────────────── */
-    .field-group {
+    /* ══════════════════════════════════════════
+       SECTION HEADERS
+    ══════════════════════════════════════════ */
+    .section-head {
       display: flex;
-      flex-direction: column;
-      gap: 24px;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 20px;
+    }
+
+    .section-num {
+      width: 22px; height: 22px;
+      background: var(--green);
+      border-radius: 50%;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--green-pale);
+    }
+
+    /* ══════════════════════════════════════════
+       FIELD LAYOUT
+    ══════════════════════════════════════════ */
+    .field-group { margin-bottom: 32px; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
 
     .field-item {
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 6px;
+      margin-bottom: 20px;
     }
 
-    /* 라벨 */
+    .field-item:last-child { margin-bottom: 0; }
+
+    /* ── Label ── */
     .field-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--color-text-main);
-      letter-spacing: 0.01em;
-    }
-
-    .field-label .required-mark {
-      color: var(--color-required);
-      margin-left: 3px;
-      font-size: 14px;
-      line-height: 1;
-    }
-
-    /* 도움말 텍스트 */
-    .field-hint {
       font-size: 12px;
-      color: var(--color-text-sub);
-      line-height: 1.5;
-      margin-top: -3px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.02em;
     }
 
-    /* ─────────────────────────────────────────
-       인풋 공통
-    ───────────────────────────────────────── */
+    .required-mark { color: var(--green); margin-left: 2px; }
+
+    /* ── Input ── */
     .field-input {
       width: 100%;
-      height: 44px;
+      height: 48px;
       padding: 0 14px;
-      font-family: var(--font-family);
-      font-size: 14px;
-      color: var(--color-text-main);
-      background: var(--color-white);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-input);
+      font-family: var(--font);
+      font-size: 14.5px;
+      font-weight: 400;
+      color: var(--text);
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
       outline: none;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.15s ease;
       -webkit-appearance: none;
     }
 
-    .field-input::placeholder {
-      color: #AAAAAA;
+    .field-input::placeholder { color: #C8D4C5; }
+
+    .field-input:hover:not(:focus):not(.is-error) {
+      border-color: var(--green-light);
+      background: var(--green-frost);
     }
 
     .field-input:focus {
-      border-color: var(--color-green-primary);
+      border-color: var(--green);
+      box-shadow: var(--shadow-focus);
+      background: var(--white);
     }
 
-    /* 에러 상태 인풋 */
     .field-input.is-error {
-      border-color: var(--color-error);
-      background: var(--color-error-bg);
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.12);
     }
 
-    /* 에러 메시지 */
+    /* ── Hint / Error ── */
+    .field-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
     .field-error {
       font-size: 12px;
-      color: var(--color-error);
+      color: var(--error);
       display: none;
-      margin-top: -3px;
+      align-items: center;
+      gap: 4px;
     }
 
-    .field-error.is-visible {
-      display: block;
-    }
+    .field-error.is-visible { display: flex; }
 
-    /* ─────────────────────────────────────────
-       파일 업로드 영역
-    ───────────────────────────────────────── */
-    .file-upload-area {
-      border: 1.5px dashed var(--color-border);
-      border-radius: var(--radius-input);
-      padding: 28px 20px;
+    /* ══════════════════════════════════════════
+       SECTION DIVIDER
+    ══════════════════════════════════════════ */
+    .sec-divider { height: 1px; background: var(--green-pale); margin: 0 0 28px; }
+
+    /* ══════════════════════════════════════════
+       FILE UPLOAD
+    ══════════════════════════════════════════ */
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-md);
+      padding: 30px 20px 26px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.15s ease, background 0.15s ease;
       position: relative;
+      background: var(--green-frost);
+      transition: border-color 0.18s ease, background 0.18s ease;
+      margin-bottom: 10px;
     }
 
-    .file-upload-area:hover,
-    .file-upload-area.drag-over {
-      border-color: var(--color-green-primary);
-      background: rgba(99, 117, 97, 0.04);
+    .file-drop:hover,
+    .file-drop.drag-over {
+      border-color: var(--green);
+      background: var(--green-pale);
     }
 
-    /* 숨겨진 실제 file input */
-    .file-upload-area input[type="file"] {
+    .file-drop input[type="file"] {
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
       opacity: 0;
       cursor: pointer;
       font-size: 0;
     }
 
-    .file-upload-icon {
-      width: 36px;
-      height: 36px;
-      margin: 0 auto 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-green-primary);
+    .file-drop__icon {
+      width: 50px; height: 50px;
+      border-radius: 50%;
+      background: var(--white);
+      box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 13px;
+      color: var(--green);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .file-upload-icon svg {
-      width: 36px;
-      height: 36px;
+    .file-drop:hover .file-drop__icon {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
-    .file-upload-label {
-      font-size: 13px;
-      color: var(--color-text-sub);
-      line-height: 1.6;
+    .file-drop__icon svg { width: 22px; height: 22px; }
+
+    .file-drop__title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-bottom: 4px;
     }
 
-    .file-upload-label strong {
-      color: var(--color-green-primary);
-      font-weight: 600;
-      cursor: pointer;
+    .file-drop__title strong { color: var(--green); font-weight: 700; }
+
+    .file-drop__types { font-size: 11px; color: var(--text-muted); }
+
+    /* ── File Size Error ── */
+    .file-size-error {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 6px;
+      line-height: 1.55;
+      display: none;
     }
 
-    .file-upload-label .file-types {
-      display: block;
-      font-size: 11px;
-      color: #AAAAAA;
-      margin-top: 4px;
-    }
+    .file-size-error.is-visible { display: block; }
 
-    /* ─────────────────────────────────────────
-       선택된 파일 목록
-    ───────────────────────────────────────── */
-    .file-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    /* ── [진행률] 향후 활성화 예정 ── */
+    .upload-progress {
+      display: none; /* 현재 비활성 — 향후 활성화 예정 */
+      height: 4px;
+      background: var(--green-pale);
+      border-radius: 2px;
       margin-top: 10px;
+      overflow: hidden;
     }
 
-    .file-list-item {
+    .upload-progress-bar {
+      height: 100%;
+      background: var(--green);
+      width: 0%;
+      transition: width 0.2s ease;
+      border-radius: 2px;
+    }
+
+    /* ── File List ── */
+    .file-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+    .file-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 9px 12px;
-      background: var(--color-bg-section);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-input);
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--white);
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
 
-    .file-list-icon {
+    .file-item:hover { border-color: var(--green-light); background: var(--green-frost); }
+
+    .file-thumb {
       flex-shrink: 0;
-      width: 16px;
-      height: 16px;
-      color: var(--color-green-primary);
+      width: 38px; height: 38px;
+      border-radius: var(--r-xs);
+      background: var(--green-pale);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      color: var(--green);
     }
 
-    .file-list-icon svg {
-      width: 16px;
-      height: 16px;
-    }
+    .file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .file-thumb svg { width: 17px; height: 17px; }
 
-    .file-list-name {
-      flex: 1;
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
       font-size: 13px;
-      color: var(--color-text-main);
+      font-weight: 500;
+      color: var(--text);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .file-list-size {
-      flex-shrink: 0;
-      font-size: 11px;
-      color: #AAAAAA;
-    }
+    .file-size { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
-    /* 파일 삭제 버튼 */
-    .file-remove-btn {
+    .file-remove {
       flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #AAAAAA;
+      width: 26px; height: 26px;
+      border: none; background: none; cursor: pointer;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
       padding: 0;
-      transition: color 0.15s ease;
     }
 
-    .file-remove-btn:hover {
-      color: var(--color-error);
+    .file-remove:hover { background: var(--error-bg); color: var(--error); }
+    .file-remove svg { width: 13px; height: 13px; }
+
+    /* ══════════════════════════════════════════
+       PRIVACY CHECKBOX
+    ══════════════════════════════════════════ */
+    .privacy-item { margin-bottom: 0; }
+
+    .privacy-label {
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+      padding: 16px 18px;
+      background: var(--green-frost);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
     }
 
-    .file-remove-btn svg {
-      width: 14px;
-      height: 14px;
+    .privacy-label:hover { border-color: var(--green-light); background: var(--green-pale); }
+    .privacy-label.is-error { border-color: var(--error); background: var(--error-bg); }
+
+    .privacy-label input[type="checkbox"] { display: none; }
+
+    .custom-check {
+      flex-shrink: 0;
+      width: 19px; height: 19px;
+      border: 1.5px solid var(--border);
+      border-radius: 5px;
+      background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+      transition: all 0.15s ease;
     }
 
-    /* ─────────────────────────────────────────
-       제출 버튼
-    ───────────────────────────────────────── */
+    .custom-check.is-checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .custom-check__mark {
+      width: 10px; height: 6px;
+      border-left: 2.5px solid white;
+      border-bottom: 2.5px solid white;
+      transform: rotate(-47deg);
+      margin-top: -2px;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+
+    .custom-check.is-checked .custom-check__mark { opacity: 1; }
+
+    .privacy-text {
+      font-size: 12.5px;
+      color: var(--text-sub);
+      line-height: 1.65;
+    }
+
+    .privacy-text strong { font-weight: 700; color: var(--text); }
+
+    .privacy-error {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 6px;
+      display: none;
+    }
+
+    .privacy-error.is-visible { display: block; }
+
+    /* ══════════════════════════════════════════
+       SUBMIT BUTTON
+    ══════════════════════════════════════════ */
     .submit-btn {
       width: 100%;
-      height: 52px;
-      margin-top: 36px;
-      background: var(--color-green-primary);
-      color: var(--color-white);
-      border: none;
-      border-radius: var(--radius-none);
-      font-family: var(--font-family);
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: background 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height: 54px;
+      margin-top: 28px;
+      display: flex; align-items: center; justify-content: center;
       gap: 8px;
+      background: var(--green);
+      color: var(--white);
+      border: none;
+      border-radius: var(--r-sm);
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s ease, transform 0.18s ease, box-shadow 0.2s ease;
+    }
+
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent 60%);
+      pointer-events: none;
     }
 
     .submit-btn:hover:not(:disabled) {
-      background: var(--color-green-dark);
+      background: var(--green-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(66,91,81,0.32);
     }
 
-    .submit-btn:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-    }
+    .submit-btn:active:not(:disabled) { transform: translateY(0); }
 
-    /* 로딩 스피너 */
+    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
     .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: #fff;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: white;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       display: none;
     }
 
-    .submit-btn.is-loading .spinner {
-      display: block;
-    }
+    .submit-btn.is-loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* ─────────────────────────────────────────
-       글로벌 에러 배너
-    ───────────────────────────────────────── */
+    /* ══════════════════════════════════════════
+       GLOBAL ERROR
+    ══════════════════════════════════════════ */
     .global-error {
-      margin-top: 16px;
-      padding: 14px 16px;
-      background: var(--color-error-bg);
-      border: 1px solid #F5C6C6;
-      border-radius: var(--radius-input);
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: var(--r-xs);
       font-size: 13px;
-      color: var(--color-error);
+      color: var(--error);
+      line-height: 1.55;
       display: none;
-      line-height: 1.5;
     }
 
-    .global-error.is-visible {
-      display: block;
-    }
+    .global-error.is-visible { display: block; }
 
-    /* ─────────────────────────────────────────
-       성공 화면
-    ───────────────────────────────────────── */
+    /* ══════════════════════════════════════════
+       SUCCESS SCREEN
+    ══════════════════════════════════════════ */
     .success-screen {
       display: none;
-      padding: 64px 40px;
+      padding: 72px 44px 80px;
       text-align: center;
     }
 
     .success-screen.is-visible {
       display: block;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .success-icon-wrap {
+      position: relative;
+      width: 74px; height: 74px;
+      margin: 0 auto 28px;
+    }
+
+    .success-ring {
+      position: absolute;
+      inset: -9px;
+      border-radius: 50%;
+      border: 1.5px solid var(--green-light);
+      animation: ringIn 0.6s ease 0.25s both;
+      opacity: 0;
+    }
+
+    @keyframes ringIn {
+      from { transform: scale(0.75); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
     }
 
     .success-icon {
-      width: 56px;
-      height: 56px;
-      background: rgba(183, 201, 173, 0.35);
+      width: 74px; height: 74px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 24px;
+      background: var(--green-pale);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green);
     }
 
-    .success-icon svg {
-      width: 28px;
-      height: 28px;
-      color: var(--color-green-primary);
-    }
+    .success-icon svg { width: 32px; height: 32px; }
 
     .success-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--color-text-main);
-      letter-spacing: -0.01em;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.025em;
       margin-bottom: 10px;
     }
 
     .success-desc {
       font-size: 14px;
-      color: var(--color-text-sub);
-      line-height: 1.7;
+      color: var(--text-muted);
+      line-height: 1.8;
     }
 
-    /* ─────────────────────────────────────────
-       반응형 (max-width: 640px)
-    ───────────────────────────────────────── */
-    @media (max-width: 640px) {
-      body {
-        padding: 24px 0 60px;
-        background: var(--color-white);
-      }
+    /* ══════════════════════════════════════════
+       CARD FOOTER
+    ══════════════════════════════════════════ */
+    .card-footer {
+      padding: 15px 44px;
+      border-top: 1px solid var(--green-pale);
+      background: var(--green-frost);
+    }
 
-      .form-wrapper {
-        border-left: none;
-        border-right: none;
-        border-top: none;
-      }
+    .card-footer p {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
 
-      .form-header {
-        padding: 28px 20px 24px;
-      }
+    /* ══════════════════════════════════════════
+       DUPLICATE MODAL
+    ══════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,34,24,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
 
-      .form-body {
-        padding: 28px 20px 32px;
-      }
+    .modal-overlay.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
 
-      .success-screen {
-        padding: 48px 20px;
-      }
+    .modal-box {
+      background: var(--white);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 32px 28px 24px;
+      max-width: 380px;
+      width: 100%;
+      transform: translateY(12px) scale(0.98);
+      transition: transform 0.22s ease;
+    }
 
-      .form-title {
-        font-size: 19px;
-      }
+    .modal-overlay.is-open .modal-box {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--green-pale);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green);
+      margin: 0 auto 16px;
+    }
+
+    .modal-icon svg { width: 22px; height: 22px; }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: center;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.65;
+      margin-bottom: 22px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: var(--r-sm);
+      border: none;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .modal-btn--secondary {
+      background: var(--green-frost);
+      border: 1.5px solid var(--border);
+      color: var(--text-sub);
+    }
+
+    .modal-btn--secondary:hover { border-color: var(--green-light); background: var(--green-pale); }
+
+    .modal-btn--primary {
+      background: var(--green);
+      color: white;
+    }
+
+    .modal-btn--primary:hover { background: var(--green-dark); }
+
+    /* ══════════════════════════════════════════
+       ANIMATIONS
+    ══════════════════════════════════════════ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════ */
+    @media (max-width: 580px) {
+      body { padding: 28px 0 80px; background: var(--white); }
+      .card { border-radius: 0; box-shadow: none; border: none; }
+      .card-header { padding: 26px 24px 22px; }
+      .card-body { padding: 28px 24px 36px; }
+      .card-footer { padding: 14px 24px; }
+      .success-screen { padding: 56px 24px 64px; }
+      .field-row { grid-template-columns: 1fr; }
+      .brand-pill { gap: 9px; padding: 8px 16px 8px 12px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ───────────────────────────────────────
-       폼 래퍼
-  ─────────────────────────────────────────── -->
-  <div class="form-wrapper" id="formWrapper">
+  <!-- ── 브랜드 로고 ─────────────────────────────── -->
+  <div class="brand">
+    <div class="brand-pill">
+      <!-- Pressco21 꽃 로고 (SVG) -->
+      <svg class="brand-flower" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 5-petal blossom matching Pressco21 logo -->
+        <ellipse cx="20" cy="11.5" rx="6" ry="9" fill="#637561" opacity="0.88"/>
+        <ellipse cx="20" cy="11.5" rx="6" ry="9" fill="#637561" opacity="0.88" transform="rotate(72 20 20)"/>
+        <ellipse cx="20" cy="11.5" rx="6" ry="9" fill="#637561" opacity="0.88" transform="rotate(144 20 20)"/>
+        <ellipse cx="20" cy="11.5" rx="6" ry="9" fill="#637561" opacity="0.88" transform="rotate(216 20 20)"/>
+        <ellipse cx="20" cy="11.5" rx="6" ry="9" fill="#637561" opacity="0.88" transform="rotate(288 20 20)"/>
+        <!-- Center white circle -->
+        <circle cx="20" cy="20" r="6.5" fill="white"/>
+        <!-- Center dot -->
+        <circle cx="20" cy="20" r="2.8" fill="#637561"/>
+      </svg>
 
-    <!-- 헤더 -->
-    <div class="form-header">
-      <p class="brand-name">Forever Love</p>
-      <h1 class="form-title">프레스코21 강사회원<br>등업 신청서</h1>
+      <div class="brand-words">
+        <span class="brand-name">PRESSCO21</span>
+        <span class="brand-tagline">꽃으로노는모든방법</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 카드 ───────────────────────────────────── -->
+  <div class="card" id="formWrapper">
+
+    <div class="card-stripe"></div>
+
+    <!-- Card Header -->
+    <div class="card-header">
+      <div class="card-badge">
+        <span class="card-badge__dot"></span>
+        강사회원 신청
+      </div>
+      <h1 class="card-title">등업 신청서</h1>
+      <p class="card-desc">강사회원 등업을 신청합니다.</p>
     </div>
 
-    <!-- 성공 화면 (기본 숨김) -->
+    <!-- Success Screen (기본 숨김) -->
     <div class="success-screen" id="successScreen" aria-live="polite">
-      <div class="success-icon" aria-hidden="true">
-        <!-- 체크 아이콘 -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
+      <div class="success-icon-wrap" aria-hidden="true">
+        <div class="success-ring"></div>
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
       </div>
       <p class="success-title" id="successTitle"></p>
       <p class="success-desc" id="successDesc"></p>
     </div>
 
-    <!-- 폼 바디 -->
-    <div class="form-body" id="formBody">
+    <!-- Card Body -->
+    <div class="card-body" id="formBody">
 
-      <!-- 안내문 박스 -->
-      <div class="notice-box" role="note" aria-label="신청 안내사항">
+      <!-- 안내 박스 -->
+      <div class="notice" role="note">
+        <p class="notice-head">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="6.5" r="6" stroke="#637561" stroke-width="1"/>
+            <path d="M6.5 5.5v3.5" stroke="#637561" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="6.5" cy="3.8" r="0.7" fill="#637561"/>
+          </svg>
+          신청 안내
+        </p>
         <ul>
           <li>필수 제출 서류: 원예관련 사업자 등록증 혹은 자격증.</li>
-          <li>추후 협회별 고도화된 혜택 제공 및 대응을 위해 소속 협회는 모두 적어주시는게 고객님께 최적의 혜택을 드릴 수 있습니다.</li>
+          <li>추후 협회별 혜택 고도화를 위해 소속 협회를 모두 적어주세요.</li>
           <li>가능한 많은 증빙서류를 첨부해주세요.</li>
-          <li>회원가입을 먼저 진행하시고 해당 내역으로 기재 부탁드립니다.</li>
+          <li>회원가입을 먼저 진행하신 후 해당 내역으로 기재 부탁드립니다.</li>
         </ul>
       </div>
 
-      <!-- 신청 폼 -->
       <form id="applyForm" novalidate>
+
+        <!-- ─── SECTION 01: 신청자 정보 ─────────── -->
+        <div class="section-head">
+          <span class="section-num">1</span>
+          <span class="section-title">신청자 정보</span>
+          <span class="section-line"></span>
+        </div>
+
         <div class="field-group">
 
-          <!-- 1. 성함 -->
-          <div class="field-item">
-            <label class="field-label" for="fieldName">
-              성함
-              <span class="required-mark" aria-hidden="true">*</span>
-            </label>
-            <input
-              type="text"
-              id="fieldName"
-              name="name"
-              class="field-input"
-              placeholder="성함을 입력해주세요"
-              required
-              autocomplete="name"
-              aria-required="true"
-              aria-describedby="fieldNameError"
-            />
-            <span class="field-error" id="fieldNameError" role="alert">
-              성함을 입력해주세요.
-            </span>
-          </div>
-
-          <!-- 2. 자사몰 ID -->
-          <div class="field-item">
-            <label class="field-label" for="fieldMallId">
-              자사몰 ID
-              <span class="required-mark" aria-hidden="true">*</span>
-            </label>
-            <input
-              type="text"
-              id="fieldMallId"
-              name="mallId"
-              class="field-input"
-              placeholder="회원 로그인 ID"
-              required
-              autocomplete="username"
-              aria-required="true"
-              aria-describedby="fieldMallIdHint fieldMallIdError"
-            />
-            <p class="field-hint" id="fieldMallIdHint">
-              회원 로그인 할 때 ID를 오타 없이 입력해주세요. 잘못 입력시 등업이 되지 않습니다.
-            </p>
-            <span class="field-error" id="fieldMallIdError" role="alert">
-              자사몰 ID를 입력해주세요.
-            </span>
-          </div>
-
-          <!-- 3. 연락처 -->
-          <div class="field-item">
-            <label class="field-label" for="fieldPhone">
-              연락처
-              <span class="required-mark" aria-hidden="true">*</span>
-            </label>
-            <input
-              type="tel"
-              id="fieldPhone"
-              name="phone"
-              class="field-input"
-              placeholder="010-0000-0000"
-              required
-              autocomplete="tel"
-              aria-required="true"
-              aria-describedby="fieldPhoneError"
-            />
-            <span class="field-error" id="fieldPhoneError" role="alert">
-              연락처를 입력해주세요.
-            </span>
-          </div>
-
-          <!-- 4. 이메일 주소 -->
-          <div class="field-item">
-            <label class="field-label" for="fieldEmail">
-              이메일 주소
-            </label>
-            <input
-              type="email"
-              id="fieldEmail"
-              name="email"
-              class="field-input"
-              placeholder="example@email.com"
-              autocomplete="email"
-              aria-describedby="fieldEmailError"
-            />
-            <span class="field-error" id="fieldEmailError" role="alert">
-              올바른 이메일 형식을 입력해주세요.
-            </span>
-          </div>
-
-          <!-- 5. 소속 협회 -->
-          <div class="field-item">
-            <label class="field-label" for="fieldAssociation">
-              소속 협회
-            </label>
-            <input
-              type="text"
-              id="fieldAssociation"
-              name="association"
-              class="field-input"
-              placeholder="소속 협회명을 입력해주세요 (복수 기재 가능)"
-            />
-          </div>
-
-          <!-- 6. 증빙서류 첨부 -->
-          <div class="field-item">
-            <label class="field-label">
-              증빙서류 첨부
-            </label>
-
-            <!-- 드래그앤드롭 업로드 영역 -->
-            <div
-              class="file-upload-area"
-              id="fileDropArea"
-              role="button"
-              tabindex="0"
-              aria-label="파일을 드래그하거나 클릭하여 업로드"
-            >
-              <!-- 실제 file input (투명, 영역 전체) -->
-              <input
-                type="file"
-                id="fieldFiles"
-                name="files"
-                multiple
-                accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.pdf,.doc,.docx,.hwp"
-                aria-label="증빙서류 파일 선택"
-              />
-
-              <!-- 아이콘 -->
-              <div class="file-upload-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-              </div>
-
-              <!-- 업로드 안내 텍스트 -->
-              <p class="file-upload-label">
-                파일을 드래그하거나 <strong>클릭하여 선택</strong>하세요
-                <span class="file-types">JPG · PNG · WEBP · HEIC · GIF · PDF · DOC · DOCX · HWP 허용 · 여러 파일 동시 선택 가능</span>
-              </p>
+          <div class="field-row">
+            <!-- 성함 -->
+            <div class="field-item">
+              <label class="field-label" for="fieldName">성함<span class="required-mark">*</span></label>
+              <input type="text" id="fieldName" name="name" class="field-input"
+                placeholder="홍길동" required autocomplete="name"
+                aria-required="true" aria-describedby="fieldNameError"/>
+              <span class="field-error" id="fieldNameError" role="alert">성함을 입력해주세요.</span>
             </div>
 
-            <!-- 선택된 파일 목록 -->
-            <ul class="file-list" id="fileList" aria-label="선택된 파일 목록"></ul>
+            <!-- 연락처 (자동 하이픈) -->
+            <div class="field-item">
+              <label class="field-label" for="fieldPhone">연락처<span class="required-mark">*</span></label>
+              <input type="tel" id="fieldPhone" name="phone" class="field-input"
+                placeholder="010-0000-0000" required autocomplete="tel"
+                aria-required="true" aria-describedby="fieldPhoneError" maxlength="13"/>
+              <span class="field-error" id="fieldPhoneError" role="alert">010으로 시작하는 11자리 번호를 입력해주세요. (예: 010-1234-5678)</span>
+            </div>
+          </div>
+
+          <!-- 자사몰 ID -->
+          <div class="field-item">
+            <label class="field-label" for="fieldMallId">자사몰 ID<span class="required-mark">*</span></label>
+            <input type="text" id="fieldMallId" name="mallId" class="field-input"
+              placeholder="로그인 시 사용하는 아이디" required autocomplete="username"
+              aria-required="true" aria-describedby="fieldMallIdHint fieldMallIdError"/>
+            <p class="field-hint" id="fieldMallIdHint">회원 로그인 할 때 ID를 오타 없이 입력해주세요. 잘못 입력 시 등업이 되지 않습니다.</p>
+            <span class="field-error" id="fieldMallIdError" role="alert">자사몰 ID를 입력해주세요.</span>
+          </div>
+
+          <div class="field-row">
+            <!-- 이메일 -->
+            <div class="field-item">
+              <label class="field-label" for="fieldEmail">이메일 주소</label>
+              <input type="email" id="fieldEmail" name="email" class="field-input"
+                placeholder="example@email.com" autocomplete="email"
+                aria-describedby="fieldEmailError"/>
+              <span class="field-error" id="fieldEmailError" role="alert">올바른 이메일 형식을 입력해주세요.</span>
+            </div>
+
+            <!-- 소속 협회 -->
+            <div class="field-item">
+              <label class="field-label" for="fieldAssociation">소속 협회</label>
+              <input type="text" id="fieldAssociation" name="association" class="field-input"
+                placeholder="한국플로리스트협회 등"/>
+            </div>
           </div>
 
         </div><!-- /.field-group -->
 
-        <!-- 제출 버튼 -->
+        <div class="sec-divider"></div>
+
+        <!-- ─── SECTION 02: 증빙서류 ──────────── -->
+        <div class="section-head">
+          <span class="section-num">2</span>
+          <span class="section-title">증빙서류 첨부</span>
+          <span class="section-line"></span>
+        </div>
+
+        <div class="field-group">
+          <div class="file-drop" id="fileDropArea"
+               role="button" tabindex="0"
+               aria-label="파일을 드래그하거나 클릭하여 업로드">
+            <input type="file" id="fieldFiles" name="files" multiple
+                   accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.pdf,.doc,.docx,.hwp"
+                   aria-label="증빙서류 파일 선택"/>
+            <div class="file-drop__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="file-drop__title">파일을 드래그하거나 <strong>클릭하여 선택</strong>하세요</p>
+            <p class="file-drop__types">JPG · PNG · WEBP · HEIC · GIF · PDF · DOC · DOCX · HWP (파일당 최대 20MB)</p>
+          </div>
+
+          <!-- [진행률] 향후 활성화 예정 -->
+          <div class="upload-progress" id="uploadProgress" aria-hidden="true">
+            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+          </div>
+
+          <p class="file-size-error" id="fileSizeError" role="alert"></p>
+
+          <ul class="file-list" id="fileList" aria-label="선택된 파일 목록"></ul>
+        </div>
+
+        <div class="sec-divider"></div>
+
+        <!-- ─── SECTION 03: 개인정보 동의 ─────── -->
+        <div class="section-head">
+          <span class="section-num">3</span>
+          <span class="section-title">개인정보 수집 동의</span>
+          <span class="section-line"></span>
+        </div>
+
+        <div class="field-item privacy-item">
+          <label class="privacy-label" id="privacyWrap" for="privacyCheck">
+            <input type="checkbox" id="privacyCheck"/>
+            <span class="custom-check" id="customCheck">
+              <span class="custom-check__mark"></span>
+            </span>
+            <span class="privacy-text">
+              <strong>개인정보 수집 및 이용에 동의합니다. (필수)</strong><br>
+              수집 항목: 성함, 연락처, 이메일 주소, 자사몰 ID, 증빙서류<br>
+              수집 목적: 강사회원 등급 심사 · 보유 기간: 심사 완료 후 즉시 파기
+            </span>
+          </label>
+          <p class="privacy-error" id="privacyError" role="alert">개인정보 수집 및 이용에 동의해주세요.</p>
+        </div>
+
+        <!-- Submit -->
         <button type="submit" class="submit-btn" id="submitBtn">
           <span class="spinner" aria-hidden="true"></span>
           <span id="submitBtnText">신청하기</span>
         </button>
 
-        <!-- 글로벌 에러 배너 -->
         <div class="global-error" id="globalError" role="alert"></div>
 
       </form>
-    </div><!-- /.form-body -->
+    </div><!-- /.card-body -->
 
-  </div><!-- /.form-wrapper -->
+    <!-- Card Footer -->
+    <div class="card-footer" id="cardFooter">
+      <p>제출하신 정보는 강사회원 등업 심사 목적으로만 사용되며, 심사 완료 후 파기됩니다.</p>
+    </div>
+
+  </div><!-- /.card -->
+
+  <!-- ── 중복 신청 모달 ─────────────────────────── -->
+  <div class="modal-overlay" id="duplicateModal"
+       role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <div class="modal-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <p class="modal-title" id="modalTitle">이미 신청하신 내역이 있습니다</p>
+      <p class="modal-desc">동일한 자사몰 ID로 신청한 내역이 확인되었습니다.<br>기존 내용을 수정하시겠습니까?</p>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn--secondary" id="modalBtnNew">새로 신청</button>
+        <button type="button" class="modal-btn modal-btn--primary" id="modalBtnUpdate">수정하기</button>
+      </div>
+    </div>
+  </div>
 
 
   <script>
     /* ═══════════════════════════════════════════════════════════
-       강사회원 등업 신청 폼 — 전체 로직
-       파일: instructor-apply.html
-       작성일: 2026-02-26
-
-       ✏️  수정이 필요할 때는 아래 SETTINGS 블록만 변경하세요.
-           코드 지식 없이도 텍스트/파일 형식 등을 바꿀 수 있습니다.
+       강사회원 등업 신청 폼
+       ✏️  SETTINGS 블록만 수정하세요
     ═══════════════════════════════════════════════════════════ */
     (function () {
       'use strict';
@@ -717,236 +1068,356 @@
          ✏️  SETTINGS — 여기만 수정하면 됩니다
          ================================================================
 
-         [1] NocoDB 연결 정보 (변경 금지 — 서버 마이그레이션 시만 수정)
+         [1] NocoDB 연결 정보 (서버 마이그레이션 시만 수정)
          ---------------------------------------------------------------- */
-      var NOCODB_URL = 'https://nocodb.pressco21.com';   // NocoDB 서버 주소
-      var API_TOKEN  = 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl'; // API 토큰
-      var TABLE_ID   = 'mcafm2yyeaupdnt';                // 강사공간 테이블 ID
+      var NOCODB_URL = 'https://nocodb.pressco21.com';
+      var API_TOKEN  = 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl';
+      var PROJECT_ID = 'poey1yrm1r6sthf';
+      var TABLE_ID   = 'mcafm2yyeaupdnt';
 
-      /* [2] 허용 파일 형식 (MIME 타입 목록)
-             추가/제거 원하는 형식이 있으면 이 배열을 수정하세요.
+      /* [2] 파일 크기 제한
+         ---------------------------------------------------------------- */
+      var FILE_MAX_MB        = 20;                               // 파일 1개당 최대 크기
+      var FILES_TOTAL_MAX_MB = 100;                              // 전체 파일 합계 최대 크기
+      var FILE_MAX_BYTES     = FILE_MAX_MB * 1024 * 1024;
+      var FILES_TOTAL_BYTES  = FILES_TOTAL_MAX_MB * 1024 * 1024;
+
+      /* [3] 허용 파일 형식 (MIME 타입 목록)
          ---------------------------------------------------------------- */
       var ALLOWED_MIME_TYPES = [
-        'image/jpeg',           // JPG / JPEG
-        'image/png',            // PNG
-        'image/gif',            // GIF
-        'image/webp',           // WEBP
-        'image/heic',           // HEIC (아이폰 사진)
-        'image/heif',           // HEIF (아이폰 사진)
-        'application/pdf',      // PDF
-        'application/msword',   // DOC (구형 Word)
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
-        'application/x-hwp',   // HWP (한글)
-        'application/haansofthwp' // HWP (한글, 일부 브라우저)
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'image/heic', 'image/heif',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/x-hwp', 'application/haansofthwp',
+        'application/hwp'
       ];
 
-      /* [3] 성공 완료 메시지 (제출 후 표시되는 텍스트)
+      /* [4] localStorage 임시저장 키
+         ---------------------------------------------------------------- */
+      var DRAFT_KEY = 'ia_draft';
+
+      /* [5] 성공 완료 메시지
          ---------------------------------------------------------------- */
       var SUCCESS_TITLE = '신청이 완료되었습니다.';
-      var SUCCESS_DESC  = '검토 후 순차적으로 연락드리겠습니다.';
+      var SUCCESS_DESC  = '검토 후 순차적으로 연락드리겠습니다.\n빠른 시일 내에 안내해 드리겠습니다.';
 
       /* ================================================================
-         여기부터는 로직 영역입니다 — 수정하지 마세요
+         여기부터는 로직 영역입니다
          ================================================================ */
-
-      /* ─── DOM 참조 ─────────────────────────────────────────── */
-      var form         = document.getElementById('applyForm');
-      var formBody     = document.getElementById('formBody');
+      var form          = document.getElementById('applyForm');
+      var formBody      = document.getElementById('formBody');
+      var cardFooter    = document.getElementById('cardFooter');
       var successScreen = document.getElementById('successScreen');
-      var submitBtn    = document.getElementById('submitBtn');
+      var submitBtn     = document.getElementById('submitBtn');
       var submitBtnText = document.getElementById('submitBtnText');
-      var globalError  = document.getElementById('globalError');
-      var fileDropArea = document.getElementById('fileDropArea');
-      var fileInput    = document.getElementById('fieldFiles');
-      var fileListEl   = document.getElementById('fileList');
+      var globalError   = document.getElementById('globalError');
+      var fileDropArea  = document.getElementById('fileDropArea');
+      var fileInput     = document.getElementById('fieldFiles');
+      var fileListEl    = document.getElementById('fileList');
+      var fileSizeError = document.getElementById('fileSizeError');
+      var privacyCheck  = document.getElementById('privacyCheck');
+      var customCheck   = document.getElementById('customCheck');
+      var privacyWrap   = document.getElementById('privacyWrap');
+      var privacyError  = document.getElementById('privacyError');
+      var duplicateModal = document.getElementById('duplicateModal');
 
-      /* ─── 선택된 파일 목록 상태 ─────────────────────────────── */
-      var selectedFiles = []; // File 객체 배열
+      var selectedFiles      = [];
+      var _pendingSubmitData = null;
+      var _pendingRecordId   = null;
 
-      /* ─── 유틸: 파일 크기 포맷 ─────────────────────────────── */
+      /* ─── 유틸 ──────────────────────────────── */
       function formatFileSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
       }
 
-      /* ─── 유틸: 오늘 날짜 YYYY-MM-DD ────────────────────────── */
       function getTodayDate() {
         var d = new Date();
-        var yyyy = d.getFullYear();
-        var mm   = String(d.getMonth() + 1).padStart(2, '0');
-        var dd   = String(d.getDate()).padStart(2, '0');
-        return yyyy + '-' + mm + '-' + dd;
+        return d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0');
       }
 
-      /* ─── 파일 목록 UI 렌더링 ───────────────────────────────── */
+      /* ─── HEIC/HWP MIME 보완 ─────────────────
+         일부 OS에서 HEIC·HWP 파일의 MIME 타입이
+         빈 문자열 또는 application/octet-stream으로
+         넘어오는 경우 확장자로 보완합니다.          */
+      var EXT_MIME_MAP = {
+        'heic': 'image/heic',
+        'heif': 'image/heif',
+        'hwp':  'application/x-hwp',
+        'jpg':  'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png':  'image/png',
+        'gif':  'image/gif',
+        'webp': 'image/webp',
+        'pdf':  'application/pdf',
+        'doc':  'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      };
+
+      function getEffectiveMime(file) {
+        var mime = file.type;
+        if (!mime || mime === 'application/octet-stream') {
+          var ext = file.name.split('.').pop().toLowerCase();
+          return EXT_MIME_MAP[ext] || mime;
+        }
+        return mime;
+      }
+
+      function isMimeAllowed(file) {
+        var mime = getEffectiveMime(file);
+        return ALLOWED_MIME_TYPES.indexOf(mime) !== -1;
+      }
+
+      /* ─── 전화번호 자동 하이픈 ─────────────── */
+      document.getElementById('fieldPhone').addEventListener('input', function (e) {
+        var raw = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (raw.length <= 3) {
+          e.target.value = raw;
+        } else if (raw.length <= 7) {
+          e.target.value = raw.slice(0, 3) + '-' + raw.slice(3);
+        } else {
+          e.target.value = raw.slice(0, 3) + '-' + raw.slice(3, 7) + '-' + raw.slice(7);
+        }
+        saveDraft();
+      });
+
+      /* ─── 개인정보 체크박스 ─────────────────── */
+      privacyCheck.addEventListener('change', function () {
+        if (this.checked) {
+          customCheck.classList.add('is-checked');
+          privacyWrap.classList.remove('is-error');
+          privacyError.classList.remove('is-visible');
+        } else {
+          customCheck.classList.remove('is-checked');
+        }
+      });
+
+      /* ─── localStorage 임시저장 ─────────────── */
+      function saveDraft() {
+        var draft = {
+          name:        document.getElementById('fieldName').value,
+          phone:       document.getElementById('fieldPhone').value,
+          mallId:      document.getElementById('fieldMallId').value,
+          email:       document.getElementById('fieldEmail').value,
+          association: document.getElementById('fieldAssociation').value
+        };
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+      }
+
+      function restoreDraft() {
+        try {
+          var raw = localStorage.getItem(DRAFT_KEY);
+          if (!raw) return;
+          var draft = JSON.parse(raw);
+          if (draft.name)        document.getElementById('fieldName').value        = draft.name;
+          if (draft.phone)       document.getElementById('fieldPhone').value       = draft.phone;
+          if (draft.mallId)      document.getElementById('fieldMallId').value      = draft.mallId;
+          if (draft.email)       document.getElementById('fieldEmail').value       = draft.email;
+          if (draft.association) document.getElementById('fieldAssociation').value = draft.association;
+        } catch (e) {}
+      }
+
+      function clearDraft() {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      }
+
+      /* 페이지 로드 시 임시저장 복원 */
+      restoreDraft();
+
+      /* 각 필드 입력 시 임시저장 */
+      ['fieldName', 'fieldMallId', 'fieldEmail', 'fieldAssociation'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', saveDraft);
+      });
+
+      /* ─── 파일 크기 에러 ─────────────────────── */
+      function showFileSizeError(msg) {
+        fileSizeError.textContent = msg;
+        fileSizeError.classList.add('is-visible');
+      }
+
+      function clearFileSizeError() {
+        fileSizeError.textContent = '';
+        fileSizeError.classList.remove('is-visible');
+      }
+
+      /* ─── 파일 목록 렌더링 (이미지 썸네일 포함) */
       function renderFileList() {
         fileListEl.innerHTML = '';
 
-        if (selectedFiles.length === 0) return;
-
         selectedFiles.forEach(function (file, index) {
           var li = document.createElement('li');
-          li.className = 'file-list-item';
+          li.className = 'file-item';
 
-          // 파일 아이콘 (PDF vs 이미지 구분)
-          var isPdf = file.type === 'application/pdf';
-          var iconSvg = isPdf
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="9" x2="11" y2="9"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="0"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+          var isImage = getEffectiveMime(file).startsWith('image/');
+          var isPdf   = file.type === 'application/pdf';
+
+          var thumbId = 'thumb-' + index;
+          var thumbIcon = isImage
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+            : isPdf
+              ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>'
+              : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 
           li.innerHTML =
-            '<span class="file-list-icon" aria-hidden="true">' + iconSvg + '</span>' +
-            '<span class="file-list-name" title="' + file.name + '">' + file.name + '</span>' +
-            '<span class="file-list-size">' + formatFileSize(file.size) + '</span>' +
-            '<button type="button" class="file-remove-btn" aria-label="' + file.name + ' 삭제" data-index="' + index + '">' +
+            '<div class="file-thumb" id="' + thumbId + '">' + thumbIcon + '</div>' +
+            '<div class="file-info">' +
+              '<div class="file-name" title="' + file.name + '">' + file.name + '</div>' +
+              '<div class="file-size">' + formatFileSize(file.size) + '</div>' +
+            '</div>' +
+            '<button type="button" class="file-remove" aria-label="' + file.name + ' 삭제" data-index="' + index + '">' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">' +
-                '<line x1="18" y1="6" x2="6" y2="18"/>' +
-                '<line x1="6" y1="6" x2="18" y2="18"/>' +
+                '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' +
               '</svg>' +
             '</button>';
 
           fileListEl.appendChild(li);
+
+          /* 이미지 썸네일 비동기 로드 */
+          if (isImage) {
+            var reader = new FileReader();
+            reader.onload = (function (idx) {
+              return function (e) {
+                var el = document.getElementById('thumb-' + idx);
+                if (el) el.innerHTML = '<img src="' + e.target.result + '" alt="미리보기"/>';
+              };
+            })(index);
+            reader.readAsDataURL(file);
+          }
         });
 
-        // 삭제 버튼 이벤트 위임 처리
-        fileListEl.querySelectorAll('.file-remove-btn').forEach(function (btn) {
+        /* 삭제 버튼 이벤트 */
+        fileListEl.querySelectorAll('.file-remove').forEach(function (btn) {
           btn.addEventListener('click', function () {
-            var idx = parseInt(btn.getAttribute('data-index'), 10);
-            selectedFiles.splice(idx, 1);
+            selectedFiles.splice(parseInt(btn.getAttribute('data-index'), 10), 1);
+            clearFileSizeError();
             renderFileList();
           });
         });
       }
 
-      /* ─── 파일 추가 (중복 파일명 제외) ─────────────────────── */
+      /* ─── 파일 추가 (크기 검증 포함) ────────── */
       function addFiles(fileArray) {
-        var existingNames = selectedFiles.map(function (f) { return f.name; });
-        Array.prototype.forEach.call(fileArray, function (file) {
-          if (existingNames.indexOf(file.name) === -1) {
-            selectedFiles.push(file);
+        clearFileSizeError();
+
+        var names      = selectedFiles.map(function (f) { return f.name; });
+        var totalSize  = selectedFiles.reduce(function (sum, f) { return sum + f.size; }, 0);
+        var skipped    = [];
+
+        Array.prototype.forEach.call(fileArray, function (f) {
+          /* 중복 파일 건너뜀 */
+          if (names.indexOf(f.name) !== -1) return;
+
+          /* 파일당 크기 제한 */
+          if (f.size > FILE_MAX_BYTES) {
+            skipped.push(f.name + ' (파일당 ' + FILE_MAX_MB + 'MB 초과)');
+            return;
           }
+
+          /* 전체 합계 크기 제한 */
+          if (totalSize + f.size > FILES_TOTAL_BYTES) {
+            skipped.push(f.name + ' (총 ' + FILES_TOTAL_MAX_MB + 'MB 초과)');
+            return;
+          }
+
+          selectedFiles.push(f);
+          names.push(f.name);
+          totalSize += f.size;
         });
+
+        if (skipped.length > 0) {
+          showFileSizeError('업로드 제한 초과로 제외된 파일: ' + skipped.join(', '));
+        }
+
         renderFileList();
-        // input 초기화 (같은 파일 재선택 허용)
         fileInput.value = '';
       }
 
-      /* ─── 파일 input change 이벤트 ─────────────────────────── */
       fileInput.addEventListener('change', function () {
-        if (fileInput.files && fileInput.files.length > 0) {
-          addFiles(fileInput.files);
-        }
+        if (fileInput.files && fileInput.files.length > 0) addFiles(fileInput.files);
       });
 
-      /* ─── 드래그앤드롭 이벤트 ──────────────────────────────── */
-      fileDropArea.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        fileDropArea.classList.add('drag-over');
-      });
-
-      fileDropArea.addEventListener('dragleave', function () {
-        fileDropArea.classList.remove('drag-over');
-      });
-
+      fileDropArea.addEventListener('dragover',  function (e) { e.preventDefault(); fileDropArea.classList.add('drag-over'); });
+      fileDropArea.addEventListener('dragleave', function ()  { fileDropArea.classList.remove('drag-over'); });
       fileDropArea.addEventListener('drop', function (e) {
         e.preventDefault();
         fileDropArea.classList.remove('drag-over');
         var files = e.dataTransfer.files;
         if (files && files.length > 0) {
           var filtered = Array.prototype.filter.call(files, function (f) {
-            return ALLOWED_MIME_TYPES.indexOf(f.type) !== -1;
+            return isMimeAllowed(f);
           });
           if (filtered.length > 0) addFiles(filtered);
         }
       });
 
-      /* ─── 키보드로 파일 영역 열기 (접근성) ─────────────────── */
       fileDropArea.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          fileInput.click();
-        }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
       });
 
-      /* ─── 인라인 에러 표시/숨김 헬퍼 ──────────────────────── */
-      function showFieldError(inputId, errorId) {
-        var input = document.getElementById(inputId);
-        var errorEl = document.getElementById(errorId);
-        if (input) input.classList.add('is-error');
-        if (errorEl) errorEl.classList.add('is-visible');
+      /* ─── 인라인 에러 ────────────────────────── */
+      function showFieldError(id, errId) {
+        var el = document.getElementById(id);
+        var err = document.getElementById(errId);
+        if (el) el.classList.add('is-error');
+        if (err) err.classList.add('is-visible');
       }
 
-      function clearFieldError(inputId, errorId) {
-        var input = document.getElementById(inputId);
-        var errorEl = document.getElementById(errorId);
-        if (input) input.classList.remove('is-error');
-        if (errorEl) errorEl.classList.remove('is-visible');
+      function clearFieldError(id, errId) {
+        var el = document.getElementById(id);
+        var err = document.getElementById(errId);
+        if (el) el.classList.remove('is-error');
+        if (err) err.classList.remove('is-visible');
       }
 
-      /* ─── 실시간 에러 해제 (입력 시 즉시 에러 제거) ─────────── */
       ['fieldName', 'fieldMallId', 'fieldPhone', 'fieldEmail'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
-        var errorId = id + 'Error';
-        el.addEventListener('input', function () {
-          clearFieldError(id, errorId);
-        });
+        el.addEventListener('input', function () { clearFieldError(id, id + 'Error'); });
       });
 
-      /* ─── 폼 유효성 검사 ────────────────────────────────────── */
+      /* ─── 유효성 검사 ────────────────────────── */
       function validateForm() {
-        var isValid = true;
+        var valid = true;
 
-        // 성함 필수
-        var name = document.getElementById('fieldName').value.trim();
-        if (!name) {
-          showFieldError('fieldName', 'fieldNameError');
-          isValid = false;
-        } else {
-          clearFieldError('fieldName', 'fieldNameError');
+        var checks = [
+          { id: 'fieldName',   errId: 'fieldNameError',   test: function(v) { return v.length > 0; } },
+          { id: 'fieldMallId', errId: 'fieldMallIdError', test: function(v) { return v.length > 0; } },
+          /* 연락처: 010으로 시작하는 11자리 (010-XXXX-XXXX 형식) */
+          { id: 'fieldPhone',  errId: 'fieldPhoneError',  test: function(v) { return /^010-\d{4}-\d{4}$/.test(v); } },
+          { id: 'fieldEmail',  errId: 'fieldEmailError',  test: function(v) { return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); } }
+        ];
+
+        checks.forEach(function (c) {
+          var val = document.getElementById(c.id).value.trim();
+          if (!c.test(val)) { showFieldError(c.id, c.errId); valid = false; }
+          else clearFieldError(c.id, c.errId);
+        });
+
+        /* 개인정보 동의 */
+        if (!privacyCheck.checked) {
+          privacyWrap.classList.add('is-error');
+          privacyError.classList.add('is-visible');
+          valid = false;
         }
 
-        // 자사몰 ID 필수
-        var mallId = document.getElementById('fieldMallId').value.trim();
-        if (!mallId) {
-          showFieldError('fieldMallId', 'fieldMallIdError');
-          isValid = false;
-        } else {
-          clearFieldError('fieldMallId', 'fieldMallIdError');
-        }
-
-        // 연락처 필수
-        var phone = document.getElementById('fieldPhone').value.trim();
-        if (!phone) {
-          showFieldError('fieldPhone', 'fieldPhoneError');
-          isValid = false;
-        } else {
-          clearFieldError('fieldPhone', 'fieldPhoneError');
-        }
-
-        // 이메일 형식 (선택이지만 입력 시 형식 확인)
-        var email = document.getElementById('fieldEmail').value.trim();
-        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          showFieldError('fieldEmail', 'fieldEmailError');
-          isValid = false;
-        } else {
-          clearFieldError('fieldEmail', 'fieldEmailError');
-        }
-
-        return isValid;
+        return valid;
       }
 
-      /* ─── 로딩 상태 토글 ────────────────────────────────────── */
-      function setLoading(isLoading) {
-        submitBtn.disabled = isLoading;
-        submitBtnText.textContent = isLoading ? '제출 중...' : '신청하기';
-        submitBtn.classList.toggle('is-loading', isLoading);
+      /* ─── 로딩 / 에러 ────────────────────────── */
+      function setLoading(on) {
+        submitBtn.disabled = on;
+        submitBtnText.textContent = on ? '제출 중...' : '신청하기';
+        submitBtn.classList.toggle('is-loading', on);
       }
 
-      /* ─── 글로벌 에러 표시 ──────────────────────────────────── */
-      function showGlobalError(message) {
-        globalError.textContent = message;
+      function showGlobalError(msg) {
+        globalError.textContent = msg;
         globalError.classList.add('is-visible');
         globalError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
@@ -956,158 +1427,225 @@
         globalError.classList.remove('is-visible');
       }
 
-      /* ─── NocoDB 파일 업로드 ─────────────────────────────────
-         POST /api/v1/storage/upload?path=nc/{TABLE_ID}/증빙서류 첨부
-         FormData에 files[] 배열로 전송
-         응답: [{url, path, title, mimetype, size}, ...]
-      ────────────────────────────────────────────────────────── */
+      /* ─── 중복 신청 모달 ─────────────────────── */
+      function openDuplicateModal(recordId, submitData) {
+        _pendingRecordId   = recordId;
+        _pendingSubmitData = submitData;
+        duplicateModal.classList.add('is-open');
+        document.getElementById('modalBtnUpdate').focus();
+      }
+
+      function closeDuplicateModal() {
+        duplicateModal.classList.remove('is-open');
+      }
+
+      document.getElementById('modalBtnUpdate').addEventListener('click', function () {
+        closeDuplicateModal();
+        executeSubmit(true);
+      });
+
+      document.getElementById('modalBtnNew').addEventListener('click', function () {
+        closeDuplicateModal();
+        executeSubmit(false);
+      });
+
+      /* ESC 키로 모달 닫기 (새로 신청으로 처리) */
+      duplicateModal.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeDuplicateModal();
+          executeSubmit(false);
+        }
+      });
+
+      /* ─── 중복 신청 확인 ─────────────────────── */
+      function checkDuplicate(mallId) {
+        return new Promise(function (resolve) {
+          var where = encodeURIComponent('(자사몰 ID,eq,' + mallId + ')');
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', NOCODB_URL + '/api/v1/db/data/noco/' + PROJECT_ID + '/' + TABLE_ID +
+                          '?where=' + where + '&limit=1');
+          xhr.setRequestHeader('xc-token', API_TOKEN);
+          xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                var r = JSON.parse(xhr.responseText);
+                var list = r.list || [];
+                resolve(list.length > 0 ? list[0] : null);
+              } catch (e) { resolve(null); }
+            } else {
+              resolve(null); /* 오류 시 중복 없다고 처리하여 신규 제출 진행 */
+            }
+          };
+          xhr.onerror = function () { resolve(null); };
+          xhr.send();
+        });
+      }
+
+      /* ─── 파일 업로드 ────────────────────────── */
       function uploadFiles(files) {
         return new Promise(function (resolve, reject) {
-          if (!files || files.length === 0) {
-            resolve([]);
-            return;
-          }
-
+          if (!files || files.length === 0) { resolve([]); return; }
           var formData = new FormData();
-          files.forEach(function (file) {
-            formData.append('files[]', file);
-          });
-
-          var uploadPath = encodeURIComponent(
-            'nc/' + TABLE_ID + '/증빙서류 첨부'
-          );
-
+          files.forEach(function (f) { formData.append('files[]', f); });
+          var uploadPath = encodeURIComponent('nc/' + TABLE_ID + '/증빙서류 첨부');
           var xhr = new XMLHttpRequest();
           xhr.open('POST', NOCODB_URL + '/api/v1/db/storage/upload?path=' + uploadPath);
           xhr.setRequestHeader('xc-token', API_TOKEN);
 
+          /* [진행률 준비] 아래 주석을 해제하면 진행률 표시가 활성화됩니다
+          var progressEl = document.getElementById('uploadProgress');
+          var barEl      = document.getElementById('uploadProgressBar');
+          if (progressEl) progressEl.style.display = 'block';
+          xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable && barEl) {
+              barEl.style.width = Math.round(e.loaded / e.total * 100) + '%';
+            }
+          };
+          */
+
           xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
-              var response;
-              try {
-                response = JSON.parse(xhr.responseText);
-              } catch (e) {
-                reject(new Error('파일 업로드 응답 파싱 실패'));
-                return;
-              }
-              // 배열 또는 단일 객체 모두 처리
-              resolve(Array.isArray(response) ? response : [response]);
+              try { var r = JSON.parse(xhr.responseText); resolve(Array.isArray(r) ? r : [r]); }
+              catch(e) { reject(new Error('파일 업로드 응답 파싱 실패')); }
             } else {
               reject(new Error('파일 업로드 실패 (상태코드: ' + xhr.status + ')'));
             }
           };
-
-          xhr.onerror = function () {
-            reject(new Error('네트워크 오류: 파일 업로드에 실패했습니다.'));
-          };
-
+          xhr.onerror = function () { reject(new Error('네트워크 오류: 파일 업로드 실패')); };
           xhr.send(formData);
         });
       }
 
-      /* ─── NocoDB 레코드 생성 ─────────────────────────────────
-         POST /api/v2/tables/{TABLE_ID}/records
-      ────────────────────────────────────────────────────────── */
+      /* ─── 레코드 생성 ────────────────────────── */
       function createRecord(data) {
         return new Promise(function (resolve, reject) {
           var xhr = new XMLHttpRequest();
           xhr.open('POST', NOCODB_URL + '/api/v2/tables/' + TABLE_ID + '/records');
           xhr.setRequestHeader('xc-token', API_TOKEN);
           xhr.setRequestHeader('Content-Type', 'application/json');
-
           xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
-              var response;
-              try {
-                response = JSON.parse(xhr.responseText);
-              } catch (e) {
-                reject(new Error('레코드 생성 응답 파싱 실패'));
-                return;
-              }
-              resolve(response);
+              try { resolve(JSON.parse(xhr.responseText)); }
+              catch(e) { reject(new Error('레코드 생성 응답 파싱 실패')); }
             } else {
-              var errMsg = '레코드 생성 실패 (상태코드: ' + xhr.status + ')';
-              try {
-                var errBody = JSON.parse(xhr.responseText);
-                if (errBody && errBody.msg) errMsg = errBody.msg;
-              } catch (e) { /* 무시 */ }
-              reject(new Error(errMsg));
+              var msg = '레코드 생성 실패 (상태코드: ' + xhr.status + ')';
+              try { var b = JSON.parse(xhr.responseText); if (b && b.msg) msg = b.msg; } catch(e){}
+              reject(new Error(msg));
             }
           };
-
-          xhr.onerror = function () {
-            reject(new Error('네트워크 오류: 서버에 연결할 수 없습니다.'));
-          };
-
+          xhr.onerror = function () { reject(new Error('네트워크 오류: 서버 연결 실패')); };
           xhr.send(JSON.stringify(data));
         });
       }
 
-      /* ─── 성공 화면 표시 ────────────────────────────────────── */
+      /* ─── 레코드 수정 (중복 시 수정하기 선택) ── */
+      function updateRecord(recordId, data) {
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('PATCH', NOCODB_URL + '/api/v1/db/data/noco/' + PROJECT_ID + '/' + TABLE_ID + '/' + recordId);
+          xhr.setRequestHeader('xc-token', API_TOKEN);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try { resolve(JSON.parse(xhr.responseText)); }
+              catch(e) { reject(new Error('레코드 수정 응답 파싱 실패')); }
+            } else {
+              reject(new Error('레코드 수정 실패 (상태코드: ' + xhr.status + ')'));
+            }
+          };
+          xhr.onerror = function () { reject(new Error('네트워크 오류: 서버 연결 실패')); };
+          xhr.send(JSON.stringify(data));
+        });
+      }
+
+      /* ─── 실제 제출 실행 ─────────────────────── */
+      function executeSubmit(isUpdate) {
+        var data     = _pendingSubmitData;
+        var recordId = _pendingRecordId;
+        _pendingSubmitData = null;
+        _pendingRecordId   = null;
+
+        if (!data) return;
+
+        setLoading(true);
+
+        uploadFiles(selectedFiles)
+          .then(function (attachments) {
+            if (attachments && attachments.length > 0) data['증빙서류 첨부'] = attachments;
+            if (isUpdate && recordId) {
+              return updateRecord(recordId, data);
+            }
+            return createRecord(data);
+          })
+          .then(function () {
+            setLoading(false);
+            clearDraft();
+            showSuccess();
+          })
+          .catch(function (err) {
+            setLoading(false);
+            showGlobalError('제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n(' + (err && err.message || '알 수 없는 오류') + ')');
+          });
+      }
+
+      /* ─── 성공 화면 ──────────────────────────── */
       function showSuccess() {
         document.getElementById('successTitle').textContent = SUCCESS_TITLE;
         document.getElementById('successDesc').textContent  = SUCCESS_DESC;
         formBody.style.display = 'none';
+        if (cardFooter) cardFooter.style.display = 'none';
         successScreen.classList.add('is-visible');
         successScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
-      /* ─── 폼 제출 핸들러 ────────────────────────────────────── */
+      /* ─── 폼 제출 ────────────────────────────── */
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         clearGlobalError();
 
-        // 1. 유효성 검사
         if (!validateForm()) {
-          // 첫 번째 에러 필드로 스크롤
-          var firstError = form.querySelector('.is-error');
-          if (firstError) {
-            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            firstError.focus();
-          }
+          var firstErr = form.querySelector('.is-error, .privacy-label.is-error');
+          if (firstErr) { firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
           return;
         }
 
-        // 2. 폼 데이터 수집
         var nameVal        = document.getElementById('fieldName').value.trim();
         var mallIdVal      = document.getElementById('fieldMallId').value.trim();
         var phoneVal       = document.getElementById('fieldPhone').value.trim();
         var emailVal       = document.getElementById('fieldEmail').value.trim();
         var associationVal = document.getElementById('fieldAssociation').value.trim();
 
-        // 3. 로딩 시작
+        var submitData = {
+          '성함':      nameVal,
+          '자사몰 ID': mallIdVal,
+          '연락처':    phoneVal,
+          '신청 일시': getTodayDate()
+        };
+        if (emailVal)       submitData['이메일 주소'] = emailVal;
+        if (associationVal) submitData['소속 협회']   = associationVal;
+
         setLoading(true);
 
-        // 4. 파일 업로드 → 레코드 생성 (순차 처리)
-        uploadFiles(selectedFiles)
-          .then(function (attachments) {
-            var recordData = {
-              '성함':         nameVal,
-              '자사몰 ID':    mallIdVal,
-              '연락처':       phoneVal,
-              '신청 일시':    getTodayDate()
-            };
-
-            if (emailVal)       recordData['이메일 주소'] = emailVal;
-            if (associationVal) recordData['소속 협회']   = associationVal;
-            if (attachments && attachments.length > 0) {
-              recordData['증빙서류 첨부'] = attachments;
+        /* 중복 신청 확인 후 분기 */
+        checkDuplicate(mallIdVal)
+          .then(function (existingRecord) {
+            setLoading(false);
+            if (existingRecord) {
+              /* 기존 신청 내역 있음 → 모달 표시 */
+              openDuplicateModal(existingRecord.Id, submitData);
+            } else {
+              /* 신규 신청 */
+              _pendingSubmitData = submitData;
+              _pendingRecordId   = null;
+              executeSubmit(false);
             }
-
-            return createRecord(recordData);
           })
-          .then(function () {
-            // 5. 성공 처리
+          .catch(function () {
+            /* 중복 확인 실패 시 신규로 진행 */
             setLoading(false);
-            showSuccess();
-          })
-          .catch(function (err) {
-            // 6. 에러 처리
-            setLoading(false);
-            showGlobalError(
-              '제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.\n(' +
-              (err && err.message ? err.message : '알 수 없는 오류') + ')'
-            );
+            _pendingSubmitData = submitData;
+            _pendingRecordId   = null;
+            executeSubmit(false);
           });
       });
 
